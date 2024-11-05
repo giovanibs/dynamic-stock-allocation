@@ -9,7 +9,7 @@ def create_batch_and_order_line(batch_qty, order_line_qty):
     
     return (
         Batch('batch_000', dummy_sku, batch_qty, date.today()),
-        OrderLine('order_line_000', dummy_sku, order_line_qty)
+        OrderLine('order_000', dummy_sku, order_line_qty)
     )
 
 
@@ -43,7 +43,7 @@ def test_can_allocate_if_available_equal_to_required():
 
 def test_cannot_allocate_if_skus_dont_match():
     batch = Batch('batch_000', 'sku_000', 10, date.today())
-    order_line = OrderLine('order_line_000', 'sku_001', 5)
+    order_line = OrderLine('order_000', 'sku_001', 5)
 
     with pytest.raises(SKUsDontMatchError):
         batch.allocate(order_line)

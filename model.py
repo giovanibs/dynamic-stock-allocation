@@ -6,7 +6,7 @@ from typing import Set
 
 @dataclass(frozen=True)
 class OrderLine:
-    ref: str
+    order_id: str
     sku: str
     qty: int
 
