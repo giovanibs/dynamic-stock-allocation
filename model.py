@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDontMatchError
-from typing import Set
+from typing import List, Optional, Set
 
 
 @dataclass(frozen=True)
@@ -13,12 +13,23 @@ class OrderLine:
 
 class Batch:
 
-    def __init__(self, ref: str, sku: str, qty: int, eta: date ) -> None:
+    def __init__(self, ref: str, sku: str, qty: int,
+                 eta: Optional[date] = None ) -> None:
         self.ref = ref
         self.sku = sku
         self._purchased_qty = qty
         self.eta = eta
         self._allocations: Set[OrderLine] = set()
+
+
+    def __gt__(self, other: 'Batch'):
+        if self.eta is None:
+            return False
+        
+        if other.eta is None:
+            return True
+        
+        return self.eta > other.eta
 
 
     @property
@@ -42,10 +53,26 @@ class Batch:
         
         if self.available_qty - order_line.qty < 0:
             raise CannotOverallocateError()
+    
+
+    def can_allocate(self, line):
+        try:
+            self._can_allocate(line)
+        except (SKUsDontMatchError, CannotOverallocateError):
+            return False
         
+        return True
+
 
     def deallocate(self, order_line: OrderLine) -> None:
         if order_line not in self._allocations:
             raise LineIsNotAllocatedError()
         
         self._allocations.remove(order_line)
+
+
+def allocate(line: OrderLine, batches: List[Batch]) -> str:
+    """Domain service"""
+    batch = next(batch for batch in sorted(batches) if batch.can_allocate(line))
+    batch.allocate(line)
+    return batch.ref

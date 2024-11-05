@@ -1,5 +1,5 @@
-from datetime import date
-from model import Batch, OrderLine
+from datetime import date, timedelta
+from model import Batch, OrderLine, allocate
 from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDontMatchError
 import pytest
 
@@ -69,3 +69,18 @@ def test_allocation_is_idempotent():
     batch.allocate(order_line)
     batch.allocate(order_line)
     assert batch.allocated_qty == order_line.qty
+
+
+def test_prefers_current_stock_batches_to_shipments():
+    sku = 'skew'
+    tomorrow = date.today() + timedelta(days=1)
+    
+    in_stock_batch = Batch('in-stock', sku, 10, eta=None)
+    shipping_batch = Batch('shipping', sku, 10, eta=tomorrow)
+    line = OrderLine('order_ref', sku, 5)
+    
+    allocate(line, [in_stock_batch, shipping_batch])
+
+    assert in_stock_batch.available_qty == 5
+    assert shipping_batch.available_qty == 10
+    
