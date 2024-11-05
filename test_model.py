@@ -1,6 +1,6 @@
 from datetime import date
 from model import Batch, OrderLine
-from exceptions import CannotOverallocateError
+from exceptions import CannotOverallocateError, SKUsDontMatchError
 import pytest
 
 
@@ -39,3 +39,11 @@ def test_can_allocate_if_available_greater_than_required():
 def test_can_allocate_if_available_equal_to_required():
     batch, order_line = create_batch_and_order_line(10, 10)
     batch.allocate(order_line)
+
+
+def test_cannot_allocate_if_skus_dont_match():
+    batch = Batch('batch_000', 'sku_000', 10, date.today())
+    order_line = OrderLine('order_line_000', 'sku_001', 5)
+
+    with pytest.raises(SKUsDontMatchError):
+        batch.allocate(order_line)

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from exceptions import CannotOverallocateError
+from exceptions import CannotOverallocateError, SKUsDontMatchError
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,9 @@ class Batch:
 
     
     def allocate(self, order_line: OrderLine):
+        if self.sku != order_line.sku:
+            raise SKUsDontMatchError()
+        
         if self.available_qty - order_line.qty < 0:
             raise CannotOverallocateError()
         
