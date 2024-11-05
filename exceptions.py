@@ -8,3 +8,8 @@ class CannotOverallocateError(Exception):
 class SKUsDontMatchError(Exception):
     """Error raised when trying to allocate an order line to a batch with
     mismatching SKUs."""
+
+
+class LineIsNotAllocatedError(Exception):
+    """Error raised when trying to deallocate an order line that has not been
+    allocated previously."""

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from exceptions import CannotOverallocateError, SKUsDontMatchError
+from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDontMatchError
 from typing import List
 
 
@@ -42,5 +42,8 @@ class Batch:
         
 
     def deallocate(self, order_line: OrderLine) -> None:
+        if order_line not in self.order_lines:
+            raise LineIsNotAllocatedError()
+        
         self.available_qty += order_line.qty
         self.order_lines.remove(order_line)
