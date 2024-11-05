@@ -25,11 +25,14 @@ class Batch:
         self.eta = eta
 
     
-    def allocate(self, order_line: OrderLine):
+    def allocate(self, order_line: OrderLine) -> None:
+        self._can_allocate(order_line)        
+        self.available_qty -= order_line.qty
+
+    
+    def _can_allocate(self, order_line: OrderLine) -> None:
         if self.sku != order_line.sku:
             raise SKUsDontMatchError()
         
         if self.available_qty - order_line.qty < 0:
             raise CannotOverallocateError()
-        
-        self.available_qty -= order_line.qty
