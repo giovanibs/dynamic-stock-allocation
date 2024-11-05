@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from exceptions import CannotOverallocateError
 
 
 @dataclass(frozen=True)
@@ -25,4 +26,7 @@ class Batch:
 
     
     def allocate(self, order_line: OrderLine):
+        if self.available_qty - order_line.qty < 0:
+            raise CannotOverallocateError()
+        
         self.available_qty -= order_line.qty
