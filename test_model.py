@@ -53,7 +53,7 @@ def test_can_deallocate_allocated_order_line():
     batch, order_line = create_batch_and_order_line(10, 5)
     batch.allocate(order_line)
     batch.deallocate(order_line)
-    assert order_line not in batch.order_lines
+    assert order_line not in batch._allocations
     assert batch.available_qty == 10
 
 
@@ -62,4 +62,3 @@ def test_cannot_deallocate_unallocated_line():
     
     with pytest.raises(LineIsNotAllocatedError):
         batch.deallocate(order_line)
-
