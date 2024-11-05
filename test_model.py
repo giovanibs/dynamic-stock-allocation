@@ -29,3 +29,13 @@ def test_cannot_overallocate():
 
     with pytest.raises(CannotOverallocateError):
         batch.allocate(order_line)
+
+
+def test_can_allocate_if_available_greater_than_required():
+    batch, order_line = create_batch_and_order_line(10, 5)
+    batch.allocate(order_line)
+
+
+def test_can_allocate_if_available_equal_to_required():
+    batch, order_line = create_batch_and_order_line(10, 10)
+    batch.allocate(order_line)
