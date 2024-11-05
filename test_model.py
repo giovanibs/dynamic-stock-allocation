@@ -47,3 +47,11 @@ def test_cannot_allocate_if_skus_dont_match():
 
     with pytest.raises(SKUsDontMatchError):
         batch.allocate(order_line)
+
+
+def test_can_deallocate_allocated_order_line():
+    batch, order_line = create_batch_and_order_line(10, 5)
+    batch.allocate(order_line)
+    batch.deallocate(order_line)
+    assert order_line not in batch.order_lines
+    assert batch.available_qty == 10
