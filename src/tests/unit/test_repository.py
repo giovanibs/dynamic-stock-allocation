@@ -1,6 +1,6 @@
 from typing import List
-from model import Batch
-from repository import AbstractRepository
+from src.allocation.domain.model import Batch
+from src.allocation.adapters.repository import AbstractRepository
 import pytest
 
 
