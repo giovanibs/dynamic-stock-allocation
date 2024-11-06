@@ -42,16 +42,16 @@ class Batch:
         return self._purchased_qty - self.allocated_qty
 
     
-    def allocate(self, order_line: OrderLine) -> None:
-        self._can_allocate(order_line)
-        self._allocations.add(order_line)
+    def allocate(self, line: OrderLine) -> None:
+        self._can_allocate(line)
+        self._allocations.add(line)
 
 
-    def _can_allocate(self, order_line: OrderLine) -> None:
-        if self.sku != order_line.sku:
+    def _can_allocate(self, line: OrderLine) -> None:
+        if self.sku != line.sku:
             raise SKUsDontMatchError()
         
-        if self.available_qty - order_line.qty < 0:
+        if self.available_qty - line.qty < 0:
             raise CannotOverallocateError()
     
 
@@ -64,11 +64,11 @@ class Batch:
         return True
 
 
-    def deallocate(self, order_line: OrderLine) -> None:
-        if order_line not in self._allocations:
+    def deallocate(self, line: OrderLine) -> None:
+        if line not in self._allocations:
             raise LineIsNotAllocatedError()
         
-        self._allocations.remove(order_line)
+        self._allocations.remove(line)
 
 
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
