@@ -14,11 +14,11 @@ class OrderLine:
 
 class Batch:
 
-    def __init__(self, ref: str, sku: str, qty: int,
+    def __init__(self, reference: str, sku: str, purchased_qty: int,
                  eta: Optional[date] = None ) -> None:
-        self.ref = ref
+        self.reference = reference
         self.sku = sku
-        self._purchased_qty = qty
+        self._purchased_qty = purchased_qty
         self.eta = eta
         self._allocations: Set[OrderLine] = set()
 
@@ -41,6 +41,16 @@ class Batch:
     @property
     def available_qty(self):
         return self._purchased_qty - self.allocated_qty
+    
+
+    @property
+    def properties_dict(self):
+        return {
+        'reference': self.reference,
+        'sku': self.sku,
+        'purchased_qty': self._purchased_qty,
+        'eta': self.eta,
+        }
 
     
     def allocate(self, line: OrderLine) -> None:
