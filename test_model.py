@@ -4,6 +4,21 @@ from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDon
 import pytest
 
 
+@pytest.fixture
+def today():
+    return date.today()
+
+
+@pytest.fixture
+def tomorrow(today):
+    return today + timedelta(days=1)
+
+
+@pytest.fixture
+def later(today):
+    return today + timedelta(days=2)
+
+
 def create_batch_and_order_line(batch_qty, order_line_qty):
     dummy_sku = 'product_000'
     
@@ -71,9 +86,8 @@ def test_allocation_is_idempotent():
     assert batch.allocated_qty == order_line.qty
 
 
-def test_prefers_current_stock_batches_to_shipments():
+def test_prefers_current_stock_batches_to_shipments(tomorrow):
     sku = 'skew'
-    tomorrow = date.today() + timedelta(days=1)
     
     in_stock_batch = Batch('in-stock', sku, 10, eta=None)
     shipping_batch = Batch('shipping', sku, 10, eta=tomorrow)
@@ -83,4 +97,17 @@ def test_prefers_current_stock_batches_to_shipments():
 
     assert in_stock_batch.available_qty == 5
     assert shipping_batch.available_qty == 10
-    
+
+
+def test_prefers_earlier_batches(today, tomorrow, later):
+    sku = 'skew'
+    earliest_batch = Batch('today', sku, 10, eta=today)
+    in_between_batch = Batch('tomorrow', sku, 10, eta=tomorrow)
+    latest_batch = Batch('latest', sku, 10, eta=later)
+    line = OrderLine('order_ref', sku, 5)
+
+    allocate(line, [earliest_batch, in_between_batch, latest_batch])
+
+    assert earliest_batch.available_qty == 5
+    assert in_between_batch.available_qty == 10
+    assert latest_batch.available_qty == 10
