@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
-from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDontMatchError
+from exceptions import (CannotOverallocateError, LineIsNotAllocatedError, 
+                        OutOfStock, SKUsDontMatchError)
 from typing import List, Optional, Set
 
 
@@ -73,6 +74,10 @@ class Batch:
 
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
     """Domain service"""
-    batch = next(batch for batch in sorted(batches) if batch.can_allocate(line))
+    try:
+        batch = next(batch for batch in sorted(batches) if batch.can_allocate(line))
+    except StopIteration:
+        raise OutOfStock()
+    
     batch.allocate(line)
     return batch.ref

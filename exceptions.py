@@ -1,4 +1,4 @@
-"""Exceptions/errors to be used in the project."""
+"""Domain exceptions to be used in the project."""
 
 class CannotOverallocateError(Exception):
     """Error raised when trying to allocate an order line with a quantity
@@ -13,3 +13,8 @@ class SKUsDontMatchError(Exception):
 class LineIsNotAllocatedError(Exception):
     """Error raised when trying to deallocate an order line that has not been
     allocated previously."""
+
+
+class OutOfStock(Exception):
+    """Error raised when trying to allocate an order line, but there is not
+    available quantity either in stock or in shipments."""

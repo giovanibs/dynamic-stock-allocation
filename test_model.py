@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from model import Batch, OrderLine, allocate
-from exceptions import CannotOverallocateError, LineIsNotAllocatedError, SKUsDontMatchError
+from exceptions import ( CannotOverallocateError, LineIsNotAllocatedError,
+                         OutOfStock, SKUsDontMatchError )
 import pytest
 
 
@@ -123,3 +124,11 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
     batch_ref = allocate(line, [earliest_batch, in_between_batch, latest_batch])
 
     assert batch_ref == earliest_batch.ref
+
+
+def test_raises_out_of_stock_exception_if_cannot_allocate(today):
+    with pytest.raises(OutOfStock):
+        allocate(
+            OrderLine('order_ref', 'skew', 5),
+            [Batch('not_enough', 'skew', 4, eta=today)]
+        )
