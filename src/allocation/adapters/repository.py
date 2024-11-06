@@ -22,4 +22,4 @@ class DjangoRepository(AbstractRepository):
 
     
     def get(self, reference) -> model.Batch:
-        raise NotImplementedError()
+        return django_models.Batch.objects.get(reference=reference).to_domain()
