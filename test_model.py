@@ -111,3 +111,15 @@ def test_prefers_earlier_batches(today, tomorrow, later):
     assert earliest_batch.available_qty == 5
     assert in_between_batch.available_qty == 10
     assert latest_batch.available_qty == 10
+
+
+def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
+    sku = 'skew'
+    earliest_batch = Batch('today', sku, 10, eta=today)
+    in_between_batch = Batch('tomorrow', sku, 10, eta=tomorrow)
+    latest_batch = Batch('latest', sku, 10, eta=later)
+    line = OrderLine('order_ref', sku, 5)
+
+    batch_ref = allocate(line, [earliest_batch, in_between_batch, latest_batch])
+
+    assert batch_ref == earliest_batch.ref
