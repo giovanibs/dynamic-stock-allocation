@@ -1,5 +1,6 @@
 [tool.pytest.ini_options]
-pythonpath = "."
+pythonpath = ". src"
 addopts = [
     "--import-mode=importlib",
 ]
+DJANGO_SETTINGS_MODULE = "dddjango.dddjango.settings"
