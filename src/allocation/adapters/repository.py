@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 from allocation.domain import model as domain_models
 from dddjango.allocation import models as django_models
 
@@ -17,6 +18,11 @@ class AbstractRepository(ABC):
 
     @abstractmethod
     def update(self, batch: domain_models.Batch) -> None:
+        raise NotImplementedError()
+    
+
+    @abstractmethod
+    def list(self) -> List[domain_models.Batch]:
         raise NotImplementedError()
     
 
@@ -66,3 +72,7 @@ class DjangoRepository(AbstractRepository):
         for line in previous_allocation_set:
             if line not in current_allocation_set:
                 line.delete()
+
+
+    def list(self) -> List[domain_models.Batch]:
+        return super().list()
