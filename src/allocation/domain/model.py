@@ -95,4 +95,4 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
         raise OutOfStock()
     
     batch.allocate(line)
-    return batch.ref
+    return batch.reference

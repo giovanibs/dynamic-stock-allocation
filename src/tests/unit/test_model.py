@@ -123,7 +123,7 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
 
     batch_ref = allocate(line, [earliest_batch, in_between_batch, latest_batch])
 
-    assert batch_ref == earliest_batch.ref
+    assert batch_ref == earliest_batch.reference
 
 
 def test_raises_out_of_stock_exception_if_cannot_allocate(today):
