@@ -81,6 +81,11 @@ class Batch:
         
         self._allocations.remove(line)
 
+    
+    @property
+    def allocations(self) -> List[OrderLine]:
+        return list(self._allocations)
+
 
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
     """Domain service"""

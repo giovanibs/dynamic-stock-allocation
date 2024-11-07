@@ -5,99 +5,68 @@ import pytest
 from datetime import date
 
 
-@pytest.mark.django_db
-def test_can_create_object():
-    domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
+@pytest.fixture
+def domain_batch():
+    batch = domain_models.Batch('batch', 'skew', 10, eta=date.today())
     line1 = domain_models.OrderLine('order1', 'skew', 1)
     line2 = domain_models.OrderLine('order2', 'skew', 2)
     line3 = domain_models.OrderLine('order3', 'skew', 3)
-    domain_batch.allocate(line1)
-    domain_batch.allocate(line2)
-    domain_batch.allocate(line3)
+    batch.allocate(line1)
+    batch.allocate(line2)
+    batch.allocate(line3)
     
-    repo = DjangoRepository()
+    return batch
 
-    repo.add(domain_batch)
-    django_batch = django_models.Batch.objects.get(reference='django-batch')
 
-    assert django_batch.reference == domain_batch.reference
-    assert django_batch.sku == domain_batch.sku
-    assert django_batch.purchased_qty == domain_batch.allocated_qty + domain_batch.available_qty
-    assert django_batch.eta == domain_batch.eta
-    django_batch_allocations = django_models.Allocation.allocations_to_domain(django_batch)
-    assert django_batch_allocations == domain_batch._allocations
+@pytest.fixture
+def repo():
+    return DjangoRepository()
 
 
 @pytest.mark.django_db
-def test_can_get_object():
-    domain_batch = domain_models.Batch(
-        reference='django-batch',
-        sku='skew',
-        purchased_qty=10,
-        eta=date.today()
-    )
+def test_can_create_object(domain_batch, repo):
+    repo.add(domain_batch)
+    django_batch = django_models.Batch.objects.get(reference=domain_batch.reference).to_domain()
+
+    assert_batches_match(domain_batch, django_batch)
+
+
+@pytest.mark.django_db
+def test_can_get_object(repo):
+    domain_batch = domain_models.Batch('batch', 'skew', 10, eta=date.today())
     django_models.Batch.objects.create(**domain_batch.properties_dict)
-    
-    repo = DjangoRepository()
     retrieved_batch = repo.get(domain_batch.reference)
 
-    assert retrieved_batch.reference == domain_batch.reference
-    assert retrieved_batch.sku == domain_batch.sku
-    assert retrieved_batch.allocated_qty == domain_batch.allocated_qty
-    assert retrieved_batch.available_qty == domain_batch.available_qty
-    assert retrieved_batch.eta == domain_batch.eta
-    assert retrieved_batch._allocations == domain_batch._allocations
+    assert_batches_match(domain_batch, retrieved_batch)
 
 
 @pytest.mark.django_db
-def test_can_update_object_with_new_line():
-    domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
-    line1 = domain_models.OrderLine('order1', 'skew', 1)
-    line2 = domain_models.OrderLine('order2', 'skew', 2)
-    line3 = domain_models.OrderLine('order3', 'skew', 3)
-    domain_batch.allocate(line1)
-    domain_batch.allocate(line2)
-    domain_batch.allocate(line3)
-    
-    repo = DjangoRepository()
-
+def test_can_update_object_with_new_line(domain_batch, repo):
+   
     repo.add(domain_batch)
-
     brand_new_line = domain_models.OrderLine('order4', 'skew', 4)
     domain_batch.allocate(brand_new_line)
-
     repo.update(domain_batch)
-
     django_batch = repo.get(domain_batch.reference)
 
-    assert django_batch.reference == domain_batch.reference
-    assert django_batch.sku == domain_batch.sku
-    assert django_batch.allocated_qty == domain_batch.allocated_qty
-    assert django_batch.available_qty == domain_batch.available_qty
-    assert django_batch.eta == domain_batch.eta
-    assert django_batch._allocations == domain_batch._allocations
+    assert_batches_match(domain_batch, django_batch)
 
 
 @pytest.mark.django_db
-def test_can_update_object_removing_line():
-    domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
-    line1 = domain_models.OrderLine('order1', 'skew', 1)
-    line2 = domain_models.OrderLine('order2', 'skew', 2)
-    line3 = domain_models.OrderLine('order3', 'skew', 3)
-    domain_batch.allocate(line1)
-    domain_batch.allocate(line2)
-    domain_batch.allocate(line3)
-    
-    repo = DjangoRepository()
+def test_can_update_object_removing_line(domain_batch, repo):
+   
     repo.add(domain_batch)
-    domain_batch.deallocate(line2)
+    domain_batch.deallocate(domain_batch.allocations[0])
     repo.update(domain_batch)
-
     django_batch = repo.get(domain_batch.reference)
 
-    assert django_batch.reference == domain_batch.reference
-    assert django_batch.sku == domain_batch.sku
-    assert django_batch.allocated_qty == domain_batch.allocated_qty
-    assert django_batch.available_qty == domain_batch.available_qty
-    assert django_batch.eta == domain_batch.eta
-    assert django_batch._allocations == domain_batch._allocations
+    assert_batches_match(domain_batch, django_batch)
+
+
+def assert_batches_match(batch: domain_models.Batch, other_batch: domain_models.Batch):
+    assert batch.reference == other_batch.reference
+    assert batch.sku == other_batch.sku
+    assert batch.allocated_qty == other_batch.allocated_qty
+    assert batch.available_qty == other_batch.available_qty
+    assert batch.eta == other_batch.eta
+    assert batch._allocations == other_batch._allocations
