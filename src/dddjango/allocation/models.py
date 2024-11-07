@@ -4,8 +4,7 @@ from allocation.domain import model as domain_model
 
 
 class Batch(models.Model):
-    id = models.AutoField(primary_key=True)
-    reference = models.CharField(max_length=255)
+    reference = models.CharField(max_length=255, primary_key=True)
     sku = models.CharField(max_length=255)
     purchased_qty = models.IntegerField()
     eta = models.DateField(blank=True, null=True)
@@ -26,8 +25,8 @@ class Batch(models.Model):
 
 
 class Allocation(models.Model):
-    batch = models.ForeignKey(Batch, on_delete=models.CASCADE)
-    order_id = models.CharField(max_length=255)
+    batch = models.ForeignKey(Batch, on_delete=models.CASCADE, null=True)
+    order_id = models.CharField(max_length=255, unique=True)
     sku = models.CharField(max_length=255)
     qty = models.IntegerField()
 

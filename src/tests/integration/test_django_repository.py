@@ -6,7 +6,7 @@ from datetime import date
 
 
 @pytest.mark.django_db
-def test_can_create_obj_using_django_repository():
+def test_can_create_object():
     domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
     line1 = domain_models.OrderLine('order1', 'skew', 1)
     line2 = domain_models.OrderLine('order2', 'skew', 2)
@@ -29,7 +29,7 @@ def test_can_create_obj_using_django_repository():
 
 
 @pytest.mark.django_db
-def test_can_get_obj_using_django_repository():
+def test_can_get_object():
     domain_batch = domain_models.Batch(
         reference='django-batch',
         sku='skew',
@@ -47,3 +47,57 @@ def test_can_get_obj_using_django_repository():
     assert retrieved_batch.available_qty == domain_batch.available_qty
     assert retrieved_batch.eta == domain_batch.eta
     assert retrieved_batch._allocations == domain_batch._allocations
+
+
+@pytest.mark.django_db
+def test_can_update_object_with_new_line():
+    domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
+    line1 = domain_models.OrderLine('order1', 'skew', 1)
+    line2 = domain_models.OrderLine('order2', 'skew', 2)
+    line3 = domain_models.OrderLine('order3', 'skew', 3)
+    domain_batch.allocate(line1)
+    domain_batch.allocate(line2)
+    domain_batch.allocate(line3)
+    
+    repo = DjangoRepository()
+
+    repo.add(domain_batch)
+
+    brand_new_line = domain_models.OrderLine('order4', 'skew', 4)
+    domain_batch.allocate(brand_new_line)
+
+    repo.update(domain_batch)
+
+    django_batch = repo.get(domain_batch.reference)
+
+    assert django_batch.reference == domain_batch.reference
+    assert django_batch.sku == domain_batch.sku
+    assert django_batch.allocated_qty == domain_batch.allocated_qty
+    assert django_batch.available_qty == domain_batch.available_qty
+    assert django_batch.eta == domain_batch.eta
+    assert django_batch._allocations == domain_batch._allocations
+
+
+@pytest.mark.django_db
+def test_can_update_object_removing_line():
+    domain_batch = domain_models.Batch('django-batch', 'skew', 10, eta=date.today())
+    line1 = domain_models.OrderLine('order1', 'skew', 1)
+    line2 = domain_models.OrderLine('order2', 'skew', 2)
+    line3 = domain_models.OrderLine('order3', 'skew', 3)
+    domain_batch.allocate(line1)
+    domain_batch.allocate(line2)
+    domain_batch.allocate(line3)
+    
+    repo = DjangoRepository()
+    repo.add(domain_batch)
+    domain_batch.deallocate(line2)
+    repo.update(domain_batch)
+
+    django_batch = repo.get(domain_batch.reference)
+
+    assert django_batch.reference == domain_batch.reference
+    assert django_batch.sku == domain_batch.sku
+    assert django_batch.allocated_qty == domain_batch.allocated_qty
+    assert django_batch.available_qty == domain_batch.available_qty
+    assert django_batch.eta == domain_batch.eta
+    assert django_batch._allocations == domain_batch._allocations
