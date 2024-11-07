@@ -75,4 +75,5 @@ class DjangoRepository(AbstractRepository):
 
 
     def list(self) -> List[domain_models.Batch]:
-        return super().list()
+        batches = django_models.Batch.objects.all()
+        return [batch.to_domain() for batch in batches]

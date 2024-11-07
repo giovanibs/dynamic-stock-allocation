@@ -63,6 +63,26 @@ def test_can_update_object_removing_line(domain_batch, repo):
     assert_batches_match(domain_batch, django_batch)
 
 
+@pytest.mark.django_db
+def test_can_list_batches(repo):
+    batches = [
+        domain_models.Batch('batch1', 'sku', 100),
+        domain_models.Batch('batch2', 'sku', 100),
+        domain_models.Batch('batch3', 'sku', 100),
+    ]
+    for batch in batches:
+        repo.add(batch)
+    
+    retrieved_batches = repo.list()
+    assert len(retrieved_batches) == len(batches)
+
+    for batch in batches:
+        assert_batches_match(
+            batch,
+            next(b for b in retrieved_batches if b.reference == batch.reference)
+        )
+
+
 def assert_batches_match(batch: domain_models.Batch, other_batch: domain_models.Batch):
     assert batch.reference == other_batch.reference
     assert batch.sku == other_batch.sku
