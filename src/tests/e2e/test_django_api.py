@@ -55,7 +55,7 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
 
 
 @pytest.mark.django_db
-def test_400_message_for_out_of_stock(base_url, client, repo): 
+def test_allocate_400_message_for_out_of_stock(base_url, client, repo): 
     batch = domain_models.Batch('batch', 'skew', 10)
     repo.add(batch)
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 15}
@@ -65,10 +65,42 @@ def test_400_message_for_out_of_stock(base_url, client, repo):
 
 
 @pytest.mark.django_db
-def test_400_message_for_invalid_sku(base_url, client, repo):
+def test_allocate_400_message_for_invalid_sku(base_url, client, repo):
     batch = domain_models.Batch('batch', 'skew', 10)
     repo.add(batch)
     line = {'order_id': 'o1', 'sku': 'skewer', 'qty': 10}
     response = client.post(base_url + 'allocate', data = line, content_type = "application/json")
     assert response.status_code == 400
     assert response.json()['message'] == 'InvalidSKU'
+
+
+@pytest.mark.django_db
+def test_api_returns_batch_ref_on_deallocation(base_url, client, repo):
+    sku = 'skew'
+    batch = domain_models.Batch('today', sku, 10)
+    line = {'order_id': 'o1', 'sku': sku, 'qty': 1}
+    batch.allocate(domain_models.OrderLine(**line))
+    repo.add(batch)
+    response = client.post(base_url + 'deallocate', data = line, content_type = "application/json")
+    assert response.status_code == 200
+    assert response.json()['batch_reference'] == batch.reference
+
+
+@pytest.mark.django_db
+def test_deallocate_400_message_for_invalid_sku(base_url, client, repo):
+    batch = domain_models.Batch('batch', 'skew', 10)
+    repo.add(batch)
+    line = {'order_id': 'o1', 'sku': 'skewer', 'qty': 10}
+    response = client.post(base_url + 'deallocate', data = line, content_type = "application/json")
+    assert response.status_code == 400
+    assert response.json()['message'] == 'InvalidSKU'
+
+
+@pytest.mark.django_db
+def test_deallocate_400_message_for_line_not_allocated(base_url, client, repo): 
+    batch = domain_models.Batch('batch', 'skew', 10)
+    repo.add(batch)
+    line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
+    response = client.post(base_url + 'deallocate', data = line, content_type = "application/json")
+    assert response.status_code == 400
+    assert response.json()['message'] == 'LineIsNotAllocatedError'

@@ -3,7 +3,7 @@ from ninja import NinjaAPI
 from ninja.schema import Schema
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import InvalidSKU, OutOfStock
+from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 from datetime import date
 
 from allocation.orchestration import services
@@ -70,3 +70,18 @@ def allocate(request, payload: OrderLineIn):
         return 400, {'message': 'InvalidSKU'}
         
     return 201, {'batch_reference': batch_ref}
+
+
+@api.post('deallocate', response = {200: BatchRef, 400: Message})
+def deallocate(request, payload: OrderLineIn):
+    order_line = domain_models.OrderLine(**payload.dict())
+    session = get_session()
+    try:
+        batch_ref = services.deallocate(order_line, repo, session)
+    except InvalidSKU:
+        return 400, {'message': 'InvalidSKU'}
+    except LineIsNotAllocatedError:
+        return 400, {'message': 'LineIsNotAllocatedError'}
+        
+    return 200, {'batch_reference': batch_ref}
+
