@@ -110,3 +110,14 @@ def test_allocate_raises_error_for_overallocation():
     session = FakeSession()
     with pytest.raises(OutOfStock):
         services.allocate(line_with_greater_qty, repo, session)
+
+
+def test_deallocate_returns_batch_reference():
+    batch_with_the_line = Batch('it_is_me', 'skew', 10)
+    batch_without_the_line = Batch('it_is_not_me', 'skew', 10)
+    line = OrderLine('o1', 'skew', 1)
+    batch_with_the_line.allocate(line)
+    repo = FakeRepository([batch_with_the_line, batch_without_the_line])
+    session = FakeSession()
+    batch_reference = services.deallocate(line, repo, session)
+    assert batch_reference == batch_with_the_line.reference
