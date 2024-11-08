@@ -22,7 +22,7 @@ def later(today):
 
 @pytest.fixture
 def base_url():
-    return 'http://127.0.0.1:8000/api/'
+    return '/api/'
 
 
 @pytest.fixture
@@ -68,3 +68,23 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
     response = client.post(base_url + 'allocate', data = line, content_type = "application/json")
     assert response.status_code == 201
     assert response.json()['batch_reference'] == earliest_batch.reference
+
+
+@pytest.mark.django_db
+def test_allocations_are_persisted(today, tomorrow, later, base_url, client, repo):
+    sku = 'skew'
+    earliest_batch = domain_models.Batch('today', sku, 10, eta=today)
+    in_between_batch = domain_models.Batch('tomorrow', sku, 10, eta=tomorrow)
+    latest_batch = domain_models.Batch('latest', sku, 10, eta=later)
+    repo.add(earliest_batch)
+    repo.add(in_between_batch)
+    repo.add(latest_batch)
+    line1 = {'order_id': 'o1', 'sku': sku, 'qty': 10}
+    line2 = {'order_id': 'o2', 'sku': sku, 'qty': 10}
+    response = client.post(base_url + 'allocate', data = line1, content_type = "application/json")
+    assert response.status_code == 201
+    assert response.json()['batch_reference'] == earliest_batch.reference
+
+    response = client.post(base_url + 'allocate', data = line2, content_type = "application/json")
+    assert response.status_code == 201
+    assert response.json()['batch_reference'] == in_between_batch.reference

@@ -38,4 +38,5 @@ def allocate(request, payload: OrderLineIn):
     order_line = domain_models.OrderLine(**payload.dict())
     batches = repo.list()
     batch_ref = domain_models.allocate(order_line, batches)
+    repo.update(next(b for b in batches if b.reference == batch_ref))
     return 201, {'batch_reference': batch_ref}
