@@ -1,6 +1,6 @@
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
-from dddjango.allocation import models as django_models
+from dddjango.alloc import models as django_models
 import pytest
 from datetime import date
 

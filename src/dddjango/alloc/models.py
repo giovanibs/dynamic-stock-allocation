@@ -10,7 +10,7 @@ class Batch(models.Model):
     eta = models.DateField(blank=True, null=True)
 
     class Meta:
-        app_label = 'allocation'
+        app_label = 'alloc'
 
     
     def to_domain(self) -> domain_model.Batch:
@@ -31,7 +31,7 @@ class Allocation(models.Model):
     qty = models.IntegerField()
 
     class Meta:
-        app_label = 'allocation'
+        app_label = 'alloc'
 
 
     @staticmethod

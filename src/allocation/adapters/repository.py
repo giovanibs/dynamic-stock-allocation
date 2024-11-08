@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from allocation.domain import model as domain_models
-from dddjango.allocation import models as django_models
+from dddjango.alloc import models as django_models
 
 
 class AbstractRepository(ABC):
