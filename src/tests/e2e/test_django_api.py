@@ -88,3 +88,13 @@ def test_allocations_are_persisted(today, tomorrow, later, base_url, client, rep
     response = client.post(base_url + 'allocate', data = line2, content_type = "application/json")
     assert response.status_code == 201
     assert response.json()['batch_reference'] == in_between_batch.reference
+
+
+@pytest.mark.django_db
+def test_400_message_for_out_of_stock(base_url, client, repo): 
+    batch = domain_models.Batch('batch', 'skew', 10)
+    repo.add(batch)
+    line = {'order_id': 'o1', 'sku': 'skew', 'qty': 15}
+    response = client.post(base_url + 'allocate', data = line, content_type = "application/json")
+    assert response.status_code == 400
+    assert response.json()['message'] == 'OutOfStock'

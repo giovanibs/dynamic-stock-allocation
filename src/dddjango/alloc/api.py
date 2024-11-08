@@ -3,6 +3,7 @@ from ninja import NinjaAPI
 from ninja.schema import Schema
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
+from allocation.domain.exceptions import OutOfStock
 from datetime import date
 
 
@@ -24,6 +25,10 @@ class BatchRef(Schema):
     batch_reference: str
 
 
+class Message(Schema):
+    message: str
+
+
 api = NinjaAPI()
 repo = DjangoRepository()
 
@@ -33,10 +38,15 @@ def get_batch_by_ref(request, batch_ref: str):
     return 200, repo.get(batch_ref)
 
 
-@api.post('allocate', response = {201: BatchRef})
+@api.post('allocate', response = {201: BatchRef, 400: Message})
 def allocate(request, payload: OrderLineIn):
     order_line = domain_models.OrderLine(**payload.dict())
     batches = repo.list()
-    batch_ref = domain_models.allocate(order_line, batches)
+    
+    try:
+        batch_ref = domain_models.allocate(order_line, batches)
+    except OutOfStock:
+        return 400, {'message': 'OutOfStock'}
+    
     repo.update(next(b for b in batches if b.reference == batch_ref))
     return 201, {'batch_reference': batch_ref}
