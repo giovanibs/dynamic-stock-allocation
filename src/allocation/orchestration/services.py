@@ -18,5 +18,6 @@ def allocate(line: domain_models.OrderLine, repo: AbstractRepository, session):
         raise InvalidSKU()
     
     batch_reference = domain_models.allocate(line, batches)     # (3)
+    repo.update(next(b for b in batches if b.reference == batch_reference))
     session.commit()                                            # (4)
     return batch_reference
