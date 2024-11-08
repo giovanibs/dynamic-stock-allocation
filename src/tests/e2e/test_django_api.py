@@ -98,3 +98,13 @@ def test_400_message_for_out_of_stock(base_url, client, repo):
     response = client.post(base_url + 'allocate', data = line, content_type = "application/json")
     assert response.status_code == 400
     assert response.json()['message'] == 'OutOfStock'
+
+
+@pytest.mark.django_db
+def test_400_message_for_invalid_sku(base_url, client, repo):
+    batch = domain_models.Batch('batch', 'skew', 10)
+    repo.add(batch)
+    line = {'order_id': 'o1', 'sku': 'skewer', 'qty': 10}
+    response = client.post(base_url + 'allocate', data = line, content_type = "application/json")
+    assert response.status_code == 400
+    assert response.json()['message'] == 'InvalidSKU'

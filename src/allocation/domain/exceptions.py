@@ -18,3 +18,8 @@ class LineIsNotAllocatedError(Exception):
 class OutOfStock(Exception):
     """Error raised when trying to allocate an order line, but there is not
     available quantity either in stock or in shipments."""
+
+
+class InvalidSKU(Exception):
+    """Error raised when tying to allocate an OrderLine which SKU is not found
+    in any of the batches."""

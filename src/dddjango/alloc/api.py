@@ -3,7 +3,7 @@ from ninja import NinjaAPI
 from ninja.schema import Schema
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import OutOfStock
+from allocation.domain.exceptions import InvalidSKU, OutOfStock
 from datetime import date
 
 
@@ -47,6 +47,8 @@ def allocate(request, payload: OrderLineIn):
         batch_ref = domain_models.allocate(order_line, batches)
     except OutOfStock:
         return 400, {'message': 'OutOfStock'}
-    
+    except InvalidSKU:
+        return 400, {'message': 'InvalidSKU'}
+        
     repo.update(next(b for b in batches if b.reference == batch_ref))
     return 201, {'batch_reference': batch_ref}
