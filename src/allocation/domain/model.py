@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
-from src.allocation.domain.exceptions import (
+from allocation.domain.exceptions import (
     CannotOverallocateError, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
 from typing import List, Optional, Set
 
