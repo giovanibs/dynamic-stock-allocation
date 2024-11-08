@@ -1,6 +1,8 @@
 from typing import List
+
+import pytest
 from allocation.adapters.repository import AbstractRepository
-from allocation.domain.exceptions import InvalidSKU
+from allocation.domain.exceptions import InvalidSKU, OutOfStock
 from allocation.domain.model import Batch, OrderLine
 from allocation.orchestration import services
 
@@ -52,7 +54,7 @@ class FakeSession:
         self._commited = True
 
 
-def test_commits():
+def test_commits_on_happy_path():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
     line = OrderLine('o1', 'skew', 1)
@@ -65,10 +67,18 @@ def test_does_not_commit_on_error():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
     line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    line_with_greater_qty = OrderLine('o2', 'skew', 11)
     session = FakeSession()
     try:
         services.allocate(line_with_invalid_sku, repo, session)
     except InvalidSKU:
+        pass
+    
+    assert session.commited == False
+
+    try:
+        services.allocate(line_with_greater_qty, repo, session)
+    except OutOfStock:
         pass
 
     assert session.commited == False
@@ -82,3 +92,21 @@ def test_allocate_returns_batch_reference(today, later):
     session = FakeSession()
     batch_reference = services.allocate(line, repo, session)
     assert batch_reference == earlier_batch.reference
+
+
+def test_allocate_raises_error_for_invalid_sku():
+    batch = Batch('batch', 'skew', 10)
+    repo = FakeRepository([batch])
+    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    session = FakeSession()
+    with pytest.raises(InvalidSKU):
+        services.allocate(line_with_invalid_sku, repo, session)
+
+
+def test_allocate_raises_error_for_overallocation():
+    batch = Batch('batch', 'skew', 10)
+    repo = FakeRepository([batch])
+    line_with_greater_qty = OrderLine('o2', 'skew', 11)
+    session = FakeSession()
+    with pytest.raises(OutOfStock):
+        services.allocate(line_with_greater_qty, repo, session)
