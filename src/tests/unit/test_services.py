@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 from allocation.adapters.repository import AbstractRepository
-from allocation.domain.exceptions import InvalidSKU, OutOfStock
+from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 from allocation.domain.model import Batch, OrderLine
 from allocation.orchestration import services
 
@@ -121,3 +121,52 @@ def test_deallocate_returns_batch_reference():
     session = FakeSession()
     batch_reference = services.deallocate(line, repo, session)
     assert batch_reference == batch_with_the_line.reference
+
+
+def test_deallocate_commits_on_happy_path():
+    batch = Batch('batch', 'skew', 10)
+    line = OrderLine('o1', 'skew', 1)
+    batch.allocate(line)
+    repo = FakeRepository([batch])
+    session = FakeSession()
+    services.deallocate(line, repo, session)
+    assert session.commited == True
+
+
+def test_deallocate_does_not_commit_on_error():
+    batch = Batch('batch', 'skew', 10)
+    repo = FakeRepository([batch])
+    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    line_not_allocated = OrderLine('o2', 'skew', 1)
+    session = FakeSession()
+    try:
+        services.deallocate(line_with_invalid_sku, repo, session)
+    except InvalidSKU:
+        pass
+    
+    assert session.commited == False
+
+    try:
+        services.deallocate(line_not_allocated, repo, session)
+    except LineIsNotAllocatedError:
+        pass
+
+    assert session.commited == False
+
+
+def test_deallocate_raises_error_for_invalid_sku():
+    batch = Batch('batch', 'skew', 10)
+    repo = FakeRepository([batch])
+    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    session = FakeSession()
+    with pytest.raises(InvalidSKU):
+        services.deallocate(line_with_invalid_sku, repo, session)
+
+
+def test_deallocate_raises_error_for_not_allocated_line():
+    batch = Batch('batch', 'skew', 10)
+    repo = FakeRepository([batch])
+    line_not_allocated = OrderLine('o2', 'skew', 1)
+    session = FakeSession()
+    with pytest.raises(LineIsNotAllocatedError):
+        services.deallocate(line_not_allocated, repo, session)
