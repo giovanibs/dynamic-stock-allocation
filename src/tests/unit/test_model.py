@@ -1,6 +1,6 @@
-from allocation.domain.model import Batch, OrderLine, allocate
+from allocation.domain.model import Batch, OrderLine, allocate, deallocate
 from allocation.domain.exceptions import (
-    CannotOverallocateError, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
+    CannotOverallocateError, InvalidSKU, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
 import pytest
 
 
@@ -116,3 +116,31 @@ def test_raises_out_of_stock_exception_if_cannot_allocate(today):
             OrderLine('order_ref', 'skew', 5),
             [Batch('not_enough', 'skew', 4, eta=today)]
         )
+
+def test_deallocate_returns_batch_reference():
+    batch_with_the_line = Batch('it_is_me', 'skew', 10)
+    batch_without_the_line = Batch('it_is_not_me', 'skew', 10)
+    line = ('o1', 'skew', 1)
+    batch_with_the_line.allocate(OrderLine(*line))
+    batches = [batch_with_the_line, batch_without_the_line]
+    batch_reference = deallocate(*line, batches)
+    assert batch_reference == batch_with_the_line.reference
+
+
+def test_deallocate_raises_error_for_invalid_sku():
+    batch = Batch('batch', 'skew', 10)
+    other_batch = Batch('other_batch', 'skew', 10)
+    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+    
+    with pytest.raises(InvalidSKU):
+        deallocate(*line_with_invalid_sku, [batch, other_batch])
+
+
+def test_deallocate_raises_error_for_not_allocated_line():
+    batch_without_the_line = Batch('it_is_not_me', 'skew', 10)
+    other_batch_without_the_line = Batch('it_is_not_me_either', 'skew', 10)
+    line_not_allocated = ('o1', 'skew', 1)
+    batches = [batch_without_the_line, other_batch_without_the_line]
+    
+    with pytest.raises(LineIsNotAllocatedError):
+        batch_reference = deallocate(*line_not_allocated, batches)

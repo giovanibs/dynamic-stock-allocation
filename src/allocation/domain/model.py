@@ -98,3 +98,26 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
     
     batch.allocate(line)
     return batch.reference
+
+
+def deallocate(order_id: str, sku: str, qty: int, batches: List[Batch]) -> str:
+    """Domain service to deallocate a line (expressed as primitives)."""    
+    
+    if sku not in {batch.sku for batch in batches}:
+        raise InvalidSKU()
+    
+    line = OrderLine(order_id, sku, qty)
+    batch = _find_batch_with_allocated_line(line, batches)
+    
+    if not batch:
+        raise LineIsNotAllocatedError()
+    
+    batch.deallocate(line)
+    return batch.reference
+
+
+def _find_batch_with_allocated_line(line: OrderLine, batches: List[Batch]):
+    try:
+        return next(batch for batch in batches if line in batch.allocations)
+    except StopIteration:
+        return None
