@@ -2,22 +2,6 @@ from django.test import Client
 import pytest
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
-from datetime import date, timedelta
-
-
-@pytest.fixture
-def today():
-    return date.today()
-
-
-@pytest.fixture
-def tomorrow(today):
-    return today + timedelta(days=1)
-
-
-@pytest.fixture
-def later(today):
-    return today + timedelta(days=2)
 
 
 @pytest.fixture

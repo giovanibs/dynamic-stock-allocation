@@ -1,30 +1,14 @@
-from datetime import date, timedelta
 from allocation.domain.model import Batch, OrderLine, allocate
 from allocation.domain.exceptions import (
     CannotOverallocateError, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
 import pytest
 
 
-@pytest.fixture
-def today():
-    return date.today()
-
-
-@pytest.fixture
-def tomorrow(today):
-    return today + timedelta(days=1)
-
-
-@pytest.fixture
-def later(today):
-    return today + timedelta(days=2)
-
-
 def create_batch_and_order_line(batch_qty, order_line_qty):
     dummy_sku = 'product_000'
     
     return (
-        Batch('batch_000', dummy_sku, batch_qty, date.today()),
+        Batch('batch_000', dummy_sku, batch_qty),
         OrderLine('order_000', dummy_sku, order_line_qty)
     )
 
@@ -57,8 +41,8 @@ def test_can_allocate_if_available_equal_to_required():
     batch.allocate(order_line)
 
 
-def test_cannot_allocate_if_skus_dont_match():
-    batch = Batch('batch_000', 'sku_000', 10, date.today())
+def test_cannot_allocate_if_skus_dont_match(today):
+    batch = Batch('batch_000', 'sku_000', 10, today)
     order_line = OrderLine('order_000', 'sku_001', 5)
 
     with pytest.raises(SKUsDontMatchError):
