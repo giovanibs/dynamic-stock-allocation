@@ -1,6 +1,6 @@
 from datetime import date, timedelta
-from src.allocation.domain.model import Batch, OrderLine, allocate
-from src.allocation.domain.exceptions import (
+from allocation.domain.model import Batch, OrderLine, allocate
+from allocation.domain.exceptions import (
     CannotOverallocateError, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
 import pytest
 

@@ -1,6 +1,6 @@
 from typing import List
-from src.allocation.domain.model import Batch, OrderLine
-from src.allocation.adapters.repository import AbstractRepository
+from allocation.domain.model import Batch, OrderLine
+from allocation.adapters.repository import AbstractRepository
 import pytest
 
 
