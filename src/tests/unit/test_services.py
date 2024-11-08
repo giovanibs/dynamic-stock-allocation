@@ -54,7 +54,7 @@ class FakeSession:
         self._commited = True
 
 
-def test_commits_on_happy_path():
+def test_allocate_commits_on_happy_path():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
     line = OrderLine('o1', 'skew', 1)
@@ -63,7 +63,7 @@ def test_commits_on_happy_path():
     assert session.commited == True
 
 
-def test_does_not_commit_on_error():
+def test_allocate_does_not_commit_on_error():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
     line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
