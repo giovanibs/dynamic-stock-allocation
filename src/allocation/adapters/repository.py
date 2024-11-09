@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Set
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import BatchDoesNotExist
 from dddjango.alloc import models as django_models
@@ -7,13 +7,28 @@ from dddjango.alloc import models as django_models
 
 class AbstractRepository(ABC):
 
+    def __init__(self) -> None:
+        self._seen: Set[domain_models.Batch] = set()
+
+
+    @property
+    def seen(self):
+        return self._seen
+
+
     @abstractmethod
     def add(self, batch: domain_models.Batch) -> None:
-        raise NotImplementedError()
+        self._seen.add(batch)
 
+
+    def get(self, reference) -> domain_models.Batch:
+        batch = self._get(reference)
+        self._seen.add(batch)
+        return batch
+    
 
     @abstractmethod
-    def get(self, reference) -> domain_models.Batch:
+    def _get(self, reference) -> domain_models.Batch:
         raise NotImplementedError()
     
 
@@ -30,15 +45,16 @@ class AbstractRepository(ABC):
 class DjangoRepository(AbstractRepository):
 
     def add(self, batch: domain_models.Batch) -> None:
-        
+        super().add(batch)
         django_batch = django_models.Batch(**batch.properties_dict)
         django_batch.save()
+
         for line in batch._allocations:
             django_models.Allocation.objects.create(
                 batch=django_batch, order_id=line.order_id, sku=line.sku, qty=line.qty
             )
     
-    def get(self, reference) -> domain_models.Batch:
+    def _get(self, reference) -> domain_models.Batch:
         try:
             return django_models.Batch.objects.get(reference=reference).to_domain()
         except django_models.Batch.DoesNotExist:

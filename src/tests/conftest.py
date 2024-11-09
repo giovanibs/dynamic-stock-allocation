@@ -35,12 +35,13 @@ def fake_repository():
     class FakeRepository(AbstractRepository):
 
         def __init__(self, batches: List[Batch]) -> None:
+            super().__init__()
             self._batches = set()
             for batch in batches:
                 self.add(batch)
 
         
-        def get(self, reference: str) -> Batch:
+        def _get(self, reference: str) -> Batch:
             try:
                 return next(batch for batch in self._batches if batch.reference == reference)
             except StopIteration:
