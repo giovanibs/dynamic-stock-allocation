@@ -76,9 +76,9 @@ def test_prefers_current_stock_batches_to_shipments(tomorrow):
     
     in_stock_batch = Batch('in-stock', sku, 10, eta=None)
     shipping_batch = Batch('shipping', sku, 10, eta=tomorrow)
-    line = OrderLine('order_ref', sku, 5)
+    line = ('order_ref', sku, 5)
     
-    allocate(line, [in_stock_batch, shipping_batch])
+    allocate(*line, [in_stock_batch, shipping_batch])
 
     assert in_stock_batch.available_qty == 5
     assert shipping_batch.available_qty == 10
@@ -89,9 +89,9 @@ def test_prefers_earlier_batches(today, tomorrow, later):
     earliest_batch = Batch('today', sku, 10, eta=today)
     in_between_batch = Batch('tomorrow', sku, 10, eta=tomorrow)
     latest_batch = Batch('latest', sku, 10, eta=later)
-    line = OrderLine('order_ref', sku, 5)
+    line = ('order_ref', sku, 5)
 
-    allocate(line, [earliest_batch, in_between_batch, latest_batch])
+    allocate(*line, [earliest_batch, in_between_batch, latest_batch])
 
     assert earliest_batch.available_qty == 5
     assert in_between_batch.available_qty == 10
@@ -103,9 +103,9 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
     earliest_batch = Batch('today', sku, 10, eta=today)
     in_between_batch = Batch('tomorrow', sku, 10, eta=tomorrow)
     latest_batch = Batch('latest', sku, 10, eta=later)
-    line = OrderLine('order_ref', sku, 5)
+    line = ('order_ref', sku, 5)
 
-    batch_ref = allocate(line, [earliest_batch, in_between_batch, latest_batch])
+    batch_ref = allocate(*line, [earliest_batch, in_between_batch, latest_batch])
 
     assert batch_ref == earliest_batch.reference
 
@@ -113,7 +113,7 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
 def test_raises_out_of_stock_exception_if_cannot_allocate(today):
     with pytest.raises(OutOfStock):
         allocate(
-            OrderLine('order_ref', 'skew', 5),
+            'order_ref', 'skew', 5,
             [Batch('not_enough', 'skew', 4, eta=today)]
         )
 

@@ -57,27 +57,27 @@ class FakeSession:
 def test_allocate_commits_on_happy_path():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line = OrderLine('o1', 'skew', 1)
+    line = ('o1', 'skew', 1)
     session = FakeSession()
-    services.allocate(line, repo, session)
+    services.allocate(*line, repo, session)
     assert session.commited == True
 
 
 def test_allocate_does_not_commit_on_error():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
-    line_with_greater_qty = OrderLine('o2', 'skew', 11)
+    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+    line_with_greater_qty = ('o2', 'skew', 11)
     session = FakeSession()
     try:
-        services.allocate(line_with_invalid_sku, repo, session)
+        services.allocate(*line_with_invalid_sku, repo, session)
     except InvalidSKU:
         pass
     
     assert session.commited == False
 
     try:
-        services.allocate(line_with_greater_qty, repo, session)
+        services.allocate(*line_with_greater_qty, repo, session)
     except OutOfStock:
         pass
 
@@ -88,28 +88,28 @@ def test_allocate_returns_batch_reference(today, later):
     earlier_batch = Batch('earlier', 'skew', 10, eta=today)
     later_batch = Batch('earlier', 'skew', 10, eta=later)
     repo = FakeRepository([earlier_batch, later_batch])
-    line = OrderLine('o1', 'skew', 1)
+    line = ('o1', 'skew', 1)
     session = FakeSession()
-    batch_reference = services.allocate(line, repo, session)
+    batch_reference = services.allocate(*line, repo, session)
     assert batch_reference == earlier_batch.reference
 
 
 def test_allocate_raises_error_for_invalid_sku():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
     session = FakeSession()
     with pytest.raises(InvalidSKU):
-        services.allocate(line_with_invalid_sku, repo, session)
+        services.allocate(*line_with_invalid_sku, repo, session)
 
 
 def test_allocate_raises_error_for_overallocation():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_with_greater_qty = OrderLine('o2', 'skew', 11)
+    line_with_greater_qty = ('o2', 'skew', 11)
     session = FakeSession()
     with pytest.raises(OutOfStock):
-        services.allocate(line_with_greater_qty, repo, session)
+        services.allocate(*line_with_greater_qty, repo, session)
 
 
 def test_deallocate_returns_batch_reference():

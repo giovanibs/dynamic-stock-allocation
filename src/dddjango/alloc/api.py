@@ -2,10 +2,8 @@ from typing import Union
 from ninja import NinjaAPI
 from ninja.schema import Schema
 from allocation.adapters.repository import DjangoRepository
-from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 from datetime import date
-from dataclasses import astuple
 from allocation.orchestration import services
 
 
@@ -60,10 +58,12 @@ def get_batch_by_ref(request, batch_ref: str):
 
 @api.post('allocate', response = {201: BatchRef, 400: Message})
 def allocate(request, payload: OrderLineIn):
-    order_line = domain_models.OrderLine(**payload.dict())
+    line = payload.dict()
     session = get_session()
     try:
-        batch_ref = services.allocate(order_line, repo, session)
+        batch_ref = services.allocate(
+            line['order_id'], line['sku'], line['qty'], repo, session
+        )
     except OutOfStock:
         return 400, {'message': 'OutOfStock'}
     except InvalidSKU:
@@ -74,10 +74,12 @@ def allocate(request, payload: OrderLineIn):
 
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
 def deallocate(request, payload: OrderLineIn):
-    order_line = domain_models.OrderLine(**payload.dict())
+    line = payload.dict()
     session = get_session()
     try:
-        batch_ref = services.deallocate(*astuple(order_line), repo, session)
+        batch_ref = services.deallocate(
+            line['order_id'], line['sku'], line['qty'], repo, session
+        )
     except InvalidSKU:
         return 400, {'message': 'InvalidSKU'}
     except LineIsNotAllocatedError:

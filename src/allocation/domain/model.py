@@ -87,10 +87,11 @@ class Batch:
         return list(self._allocations)
 
 
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
+def allocate(order_id: str, sku: str, qty: int, batches: List[Batch]) -> str:
     """Domain service"""
-    if line.sku not in {batch.sku for batch in batches}:
+    if sku not in {batch.sku for batch in batches}:
         raise InvalidSKU()
+    line = OrderLine(order_id, sku, qty)
     try:
         batch = next(batch for batch in sorted(batches) if batch.can_allocate(line))
     except StopIteration:

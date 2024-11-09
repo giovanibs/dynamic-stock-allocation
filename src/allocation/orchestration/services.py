@@ -6,21 +6,20 @@ Typical service-layer functions have similar steps:
 (3) We call a domain service.
 (4) If all is well, we save/update any state we’ve changed.
 """
-from typing import List
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError
+from allocation.domain.exceptions import InvalidSKU
 
 
-def allocate(line: domain_models.OrderLine, repo: AbstractRepository, session):
-    batches = repo.list()                                       # (1)
+def allocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, session):
+    batches = repo.list()                                                   # (1)
     
-    if line.sku not in {batch.sku for batch in batches}:        # (2)
+    if sku not in {batch.sku for batch in batches}:                         # (2)
         raise InvalidSKU()
     
-    batch_reference = domain_models.allocate(line, batches)     # (3)
+    batch_reference = domain_models.allocate(order_id, sku, qty, batches)   # (3)
     repo.update(next(b for b in batches if b.reference == batch_reference))
-    session.commit()                                            # (4)
+    session.commit()                                                        # (4)
     return batch_reference
 
 
