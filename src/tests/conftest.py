@@ -34,11 +34,12 @@ def fake_repository():
 
     class FakeRepository(AbstractRepository):
 
-        def __init__(self, batches: List[Batch]) -> None:
+        def __init__(self, batches: List[Batch] = None) -> None:
             super().__init__()
             self._batches = set()
-            for batch in batches:
-                self.add(batch)
+            if batches is not None:
+                for batch in batches:
+                    self.add(batch)
 
         
         def _get(self, reference: str) -> Batch:
@@ -66,6 +67,11 @@ def fake_repository():
             return list(self._batches)
 
     return FakeRepository
+
+
+@pytest.fixture(scope='session')
+def repo(fake_repository):
+    return fake_repository()
 
 
 @pytest.fixture(scope='session')
