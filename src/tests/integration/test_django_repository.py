@@ -1,5 +1,6 @@
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
+from allocation.domain.exceptions import BatchDoesNotExist
 from dddjango.alloc import models as django_models
 import pytest
 from datetime import date
@@ -38,6 +39,12 @@ def test_can_get_object(repo):
     retrieved_batch = repo.get(domain_batch.reference)
 
     assert_batches_match(domain_batch, retrieved_batch)
+
+
+@pytest.mark.django_db
+def test_can_get_object(repo):
+    with pytest.raises(BatchDoesNotExist):
+        repo.get('inexistent')
 
 
 @pytest.mark.django_db

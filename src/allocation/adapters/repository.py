@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from allocation.domain import model as domain_models
+from allocation.domain.exceptions import BatchDoesNotExist
 from dddjango.alloc import models as django_models
 
 
@@ -38,8 +39,11 @@ class DjangoRepository(AbstractRepository):
             )
     
     def get(self, reference) -> domain_models.Batch:
-        return django_models.Batch.objects.get(reference=reference).to_domain()
-    
+        try:
+            return django_models.Batch.objects.get(reference=reference).to_domain()
+        except django_models.Batch.DoesNotExist:
+            raise BatchDoesNotExist()
+
 
     def update(self, batch: domain_models.Batch) -> None:
         try:

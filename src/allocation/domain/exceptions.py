@@ -21,5 +21,10 @@ class OutOfStock(Exception):
 
 
 class InvalidSKU(Exception):
-    """Error raised when tying to allocate an OrderLine which SKU is not found
+    """Error raised when trying to allocate an OrderLine which SKU is not found
     in any of the batches."""
+
+
+class BatchDoesNotExist(Exception):
+    """Error raised when trying to get a batch by reference, but there is none"
+    by that reference."""
