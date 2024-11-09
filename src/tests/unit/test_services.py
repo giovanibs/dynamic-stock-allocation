@@ -171,3 +171,17 @@ def test_deallocate_raises_error_for_not_allocated_line():
     session = FakeSession()
     with pytest.raises(LineIsNotAllocatedError):
         services.deallocate(*line_not_allocated, repo, session)
+
+
+def test_add_batch():
+    repo = FakeRepository([])
+    session = FakeSession()
+    services.add_batch('batch', 'skew', 10, None, repo, session)
+    assert repo.get('batch').reference == 'batch'
+
+
+def test_add_batch_commits_on_happy_path():
+    repo = FakeRepository([])
+    session = FakeSession()
+    services.add_batch('batch', 'skew', 10, None, repo, session)
+    assert session.commited

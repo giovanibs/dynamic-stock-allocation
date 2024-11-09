@@ -6,6 +6,8 @@ Typical service-layer functions have similar steps:
 (3) We call a domain service.
 (4) If all is well, we save/update any state we’ve changed.
 """
+from datetime import date
+from typing import Optional
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InvalidSKU
@@ -29,3 +31,13 @@ def deallocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, sess
     repo.update(next(b for b in batches if b.reference == batch_reference))
     session.commit()
     return batch_reference
+
+
+def add_batch(reference: str,
+              sku: str,
+              purchased_qty: int,
+              eta: Optional[date],
+              repo: AbstractRepository,
+              session):
+    repo.add(domain_models.Batch(reference, sku, purchased_qty, eta))
+    session.commit()
