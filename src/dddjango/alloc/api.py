@@ -5,7 +5,7 @@ from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 from datetime import date
-
+from dataclasses import astuple
 from allocation.orchestration import services
 
 
@@ -77,7 +77,7 @@ def deallocate(request, payload: OrderLineIn):
     order_line = domain_models.OrderLine(**payload.dict())
     session = get_session()
     try:
-        batch_ref = services.deallocate(order_line, repo, session)
+        batch_ref = services.deallocate(*astuple(order_line), repo, session)
     except InvalidSKU:
         return 400, {'message': 'InvalidSKU'}
     except LineIsNotAllocatedError:

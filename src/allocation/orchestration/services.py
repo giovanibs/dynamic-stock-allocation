@@ -24,25 +24,9 @@ def allocate(line: domain_models.OrderLine, repo: AbstractRepository, session):
     return batch_reference
 
 
-def deallocate(line: domain_models.OrderLine, repo: AbstractRepository, session):
+def deallocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, session):
     batches = repo.list()
-    
-    if line.sku not in {batch.sku for batch in batches}:
-        raise InvalidSKU()
-    
-    batch = _find_batch_with_allocated_line(line, batches)
-    
-    if not batch:
-        raise LineIsNotAllocatedError()
-    
-    batch.deallocate(line)
-    repo.update(batch)
+    batch_reference = domain_models.deallocate(order_id, sku, qty, batches)
+    repo.update(next(b for b in batches if b.reference == batch_reference))
     session.commit()
-    return batch.reference
-
-
-def _find_batch_with_allocated_line(line, batches: List[domain_models.Batch]):
-    try:
-        return next(batch for batch in batches if line in batch.allocations)
-    except StopIteration:
-        return None
+    return batch_reference

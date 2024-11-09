@@ -115,39 +115,39 @@ def test_allocate_raises_error_for_overallocation():
 def test_deallocate_returns_batch_reference():
     batch_with_the_line = Batch('it_is_me', 'skew', 10)
     batch_without_the_line = Batch('it_is_not_me', 'skew', 10)
-    line = OrderLine('o1', 'skew', 1)
-    batch_with_the_line.allocate(line)
+    line = ('o1', 'skew', 1)
+    batch_with_the_line.allocate(OrderLine(*line))
     repo = FakeRepository([batch_with_the_line, batch_without_the_line])
     session = FakeSession()
-    batch_reference = services.deallocate(line, repo, session)
+    batch_reference = services.deallocate(*line, repo, session)
     assert batch_reference == batch_with_the_line.reference
 
 
 def test_deallocate_commits_on_happy_path():
     batch = Batch('batch', 'skew', 10)
-    line = OrderLine('o1', 'skew', 1)
-    batch.allocate(line)
+    line = ('o1', 'skew', 1)
+    batch.allocate(OrderLine(*line))
     repo = FakeRepository([batch])
     session = FakeSession()
-    services.deallocate(line, repo, session)
+    services.deallocate(*line, repo, session)
     assert session.commited == True
 
 
 def test_deallocate_does_not_commit_on_error():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
-    line_not_allocated = OrderLine('o2', 'skew', 1)
+    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+    line_not_allocated = ('o2', 'skew', 1)
     session = FakeSession()
     try:
-        services.deallocate(line_with_invalid_sku, repo, session)
+        services.deallocate(*line_with_invalid_sku, repo, session)
     except InvalidSKU:
         pass
     
     assert session.commited == False
 
     try:
-        services.deallocate(line_not_allocated, repo, session)
+        services.deallocate(*line_not_allocated, repo, session)
     except LineIsNotAllocatedError:
         pass
 
@@ -157,16 +157,16 @@ def test_deallocate_does_not_commit_on_error():
 def test_deallocate_raises_error_for_invalid_sku():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_with_invalid_sku = OrderLine('o1', 'invalid_skew', 1)
+    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
     session = FakeSession()
     with pytest.raises(InvalidSKU):
-        services.deallocate(line_with_invalid_sku, repo, session)
+        services.deallocate(*line_with_invalid_sku, repo, session)
 
 
 def test_deallocate_raises_error_for_not_allocated_line():
     batch = Batch('batch', 'skew', 10)
     repo = FakeRepository([batch])
-    line_not_allocated = OrderLine('o2', 'skew', 1)
+    line_not_allocated = ('o2', 'skew', 1)
     session = FakeSession()
     with pytest.raises(LineIsNotAllocatedError):
-        services.deallocate(line_not_allocated, repo, session)
+        services.deallocate(*line_not_allocated, repo, session)
