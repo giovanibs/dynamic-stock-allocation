@@ -1,32 +1,8 @@
-from typing import Union
 from ninja import NinjaAPI
-from ninja.schema import Schema
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
-from datetime import date
 from allocation.orchestration import services
-
-
-class BatchOut(Schema):
-    reference: str
-    sku: str
-    allocated_qty: int
-    available_qty: int
-    eta: Union[date, None]
-
-
-class OrderLineIn(Schema):
-    order_id: str
-    sku: str
-    qty: int
-
-
-class BatchRef(Schema):
-    batch_reference: str
-
-
-class Message(Schema):
-    message: str
+from dddjango.alloc.schemas import BatchOut, BatchRef, Message, OrderLineIn
 
 
 api = NinjaAPI()
