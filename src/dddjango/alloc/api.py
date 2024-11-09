@@ -2,11 +2,15 @@ from ninja import NinjaAPI
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 from allocation.orchestration import services
+from allocation.orchestration.uow import DjangoUoW
 from dddjango.alloc.schemas import BatchIn, BatchOut, BatchRef, Message, OrderLineIn
 
 
 api = NinjaAPI()
-repo = DjangoRepository()
+uow = DjangoUoW()
+repo = None
+with uow:
+    repo = uow.batches
 
 
 class FakeSession:
@@ -67,8 +71,7 @@ def deallocate(request, payload: OrderLineIn):
 @api.post('batches', response={201: BatchOut})
 def add_batch(request, payload: BatchIn):
     batch = payload.dict()
-    session = FakeSession()
-    services.add_batch(*batch.values(), repo, session)
+    services.add_batch(*batch.values(), uow)
     added_batch = repo.get(batch['reference'])
 
     return 201, added_batch

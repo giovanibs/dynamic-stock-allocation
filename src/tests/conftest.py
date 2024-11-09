@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain.exceptions import BatchDoesNotExist
 from allocation.domain.model import Batch, OrderLine
+from allocation.orchestration.uow import AbstractUnitOfWork
 
 
 @pytest.fixture(scope='session')
@@ -91,3 +92,41 @@ def fake_session():
             self._commited = True
 
     return FakeSession
+
+
+@pytest.fixture(scope='session')
+def fake_uow(repo):
+
+    class FakeUow(AbstractUnitOfWork):
+
+        def __init__(self, repo: AbstractRepository) -> None:
+            self._batches = repo
+            self._commited = False
+
+
+        @property
+        def commited(self) -> bool:
+            return self._commited
+        
+
+        @property
+        def batches(self) -> AbstractRepository:
+            return self._batches
+        
+
+        def __enter__(self) -> AbstractUnitOfWork:
+            return super().__enter__()
+        
+
+        def __exit__(self, *args) -> None:
+            return super().__exit__(*args)
+
+
+        def commit(self):
+            self._commited = True
+
+
+        def rollback(self):
+            pass
+
+    return FakeUow(repo)

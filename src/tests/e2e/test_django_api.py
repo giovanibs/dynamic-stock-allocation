@@ -32,7 +32,7 @@ def post_to_allocate_line(order_id: str, sku: str, qty: int):
     assert response.status_code == 201
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_can_retrieve_batch_info(base_url, client):
     batch = {'reference': 'ref', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
     post_to_create_batch(*batch.values())
@@ -50,7 +50,7 @@ def test_can_retrieve_batch_info(base_url, client):
     assert resp_batch['eta'] == batch['eta']
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, client):
     sku = 'skew'
     earliest_batch = ('today', sku, 10, today)
@@ -69,7 +69,7 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
     assert response.json()['batch_reference'] == earliest_batch[0]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_allocate_400_message_for_out_of_stock(base_url, client): 
     batch = ('batch', 'skew', 10)
     post_to_create_batch(*batch)
@@ -83,7 +83,7 @@ def test_allocate_400_message_for_out_of_stock(base_url, client):
     assert response.json()['message'] == 'OutOfStock'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_allocate_400_message_for_invalid_sku(base_url, client):
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
     response = client.post(
@@ -95,7 +95,7 @@ def test_allocate_400_message_for_invalid_sku(base_url, client):
     assert response.json()['message'] == 'InvalidSKU'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_api_returns_batch_ref_on_deallocation(base_url, client):
     batch = ('today', 'skew', 10)
     post_to_create_batch(*batch)
@@ -110,7 +110,7 @@ def test_api_returns_batch_ref_on_deallocation(base_url, client):
     assert response.json()['batch_reference'] == batch[0]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_deallocate_400_message_for_invalid_sku(base_url, client):
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
     response = client.post(
@@ -122,7 +122,7 @@ def test_deallocate_400_message_for_invalid_sku(base_url, client):
     assert response.json()['message'] == 'InvalidSKU'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_deallocate_400_message_for_line_not_allocated(base_url, client): 
     batch = ('batch', 'skew', 10)
     post_to_create_batch(*batch)
@@ -136,7 +136,7 @@ def test_deallocate_400_message_for_line_not_allocated(base_url, client):
     assert response.json()['message'] == 'LineIsNotAllocatedError'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_add_batch(base_url, client):
     batch = {'reference': 'batch', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
     response = client.post(

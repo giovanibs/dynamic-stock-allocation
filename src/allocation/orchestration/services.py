@@ -11,6 +11,7 @@ from typing import Optional
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InvalidSKU
+from allocation.orchestration.uow import AbstractUnitOfWork
 
 
 def allocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, session):
@@ -37,7 +38,8 @@ def add_batch(reference: str,
               sku: str,
               purchased_qty: int,
               eta: Optional[date],
-              repo: AbstractRepository,
-              session):
-    repo.add(domain_models.Batch(reference, sku, purchased_qty, eta))
-    session.commit()
+              uow: AbstractUnitOfWork):
+    
+    with uow:
+        uow.batches.add(domain_models.Batch(reference, sku, purchased_qty, eta))
+        uow.commit()
