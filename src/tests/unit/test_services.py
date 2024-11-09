@@ -2,7 +2,8 @@ from typing import List
 
 import pytest
 from allocation.adapters.repository import AbstractRepository
-from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
+from allocation.domain.exceptions import (
+    InvalidSKU, LineIsNotAllocatedError, OutOfStock, BatchDoesNotExist)
 from allocation.domain.model import Batch, OrderLine
 from allocation.orchestration import services
 
@@ -19,7 +20,7 @@ class FakeRepository(AbstractRepository):
         try:
             return next(batch for batch in self._batches if batch.reference == reference)
         except StopIteration:
-            raise ValueError('Batch does not exist.')
+            raise BatchDoesNotExist('Batch does not exist.')
 
 
     def add(self, batch: Batch) -> None:
