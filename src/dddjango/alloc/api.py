@@ -55,10 +55,9 @@ def allocate(request, payload: OrderLineIn):
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
 def deallocate(request, payload: OrderLineIn):
     line = payload.dict()
-    session = get_session()
     try:
         batch_ref = services.deallocate(
-            line['order_id'], line['sku'], line['qty'], repo, session
+            line['order_id'], line['sku'], line['qty'], uow
         )
     except InvalidSKU:
         return 400, {'message': 'InvalidSKU'}

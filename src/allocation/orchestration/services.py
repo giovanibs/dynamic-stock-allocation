@@ -26,11 +26,12 @@ def allocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, sessio
     return batch_reference
 
 
-def deallocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, session):
-    batches = repo.list()
-    batch_reference = domain_models.deallocate(order_id, sku, qty, batches)
-    repo.update(next(b for b in batches if b.reference == batch_reference))
-    session.commit()
+def deallocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+    with uow:
+        batches = uow.batches.list()
+        batch_reference = domain_models.deallocate(order_id, sku, qty, batches)
+        uow.batches.update(next(b for b in batches if b.reference == batch_reference))
+        uow.commit()
     return batch_reference
 
 

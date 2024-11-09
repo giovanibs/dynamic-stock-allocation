@@ -115,6 +115,7 @@ def fake_uow(repo):
         
 
         def __enter__(self) -> AbstractUnitOfWork:
+            self._commited = False
             return super().__enter__()
         
 

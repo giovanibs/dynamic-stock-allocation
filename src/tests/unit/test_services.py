@@ -77,8 +77,7 @@ def test_deallocate_returns_batch_reference(fake_uow, fake_session):
     line = ('o1', 'skew', 10)
     services.allocate(*line, fake_uow.batches, fake_session())
     
-    session = fake_session()
-    batch_reference = services.deallocate(*line, fake_uow.batches, session)
+    batch_reference = services.deallocate(*line, fake_uow)
     assert batch_reference == batch_with_the_line[0]
 
 
@@ -87,48 +86,44 @@ def test_deallocate_commits_on_happy_path(batch, fake_uow, fake_session):
     line = ('o1', 'skew', 1)
     services.allocate(*line, fake_uow.batches, fake_session())
     
-    session = fake_session()
-    services.deallocate(*line, fake_uow.batches, session)
-    assert session.commited == True
+    services.deallocate(*line, fake_uow)
+    assert fake_uow.commited == True
 
 
-def test_deallocate_does_not_commit_on_error(batch, fake_uow, fake_session):
+def test_deallocate_does_not_commit_on_error(batch, fake_uow):
     services.add_batch(*batch, fake_uow)
     line_with_invalid_sku = ('o1', 'invalid_skew', 1)
     line_not_allocated = ('o2', 'skew', 1)
     
-    session = fake_session()
     try:
-        services.deallocate(*line_with_invalid_sku, fake_uow.batches, session)
+        services.deallocate(*line_with_invalid_sku, fake_uow)
     except InvalidSKU:
         pass
     
-    assert session.commited == False
+    assert fake_uow.commited == False
 
     try:
-        services.deallocate(*line_not_allocated, fake_uow.batches, session)
+        services.deallocate(*line_not_allocated, fake_uow)
     except LineIsNotAllocatedError:
         pass
 
-    assert session.commited == False
+    assert fake_uow.commited == False
 
 
-def test_deallocate_raises_error_for_invalid_sku(batch, fake_uow, fake_session):
+def test_deallocate_raises_error_for_invalid_sku(batch, fake_uow):
     services.add_batch(*batch, fake_uow)
     line_with_invalid_sku = ('o1', 'invalid_skew', 1)
     
-    session = fake_session()
     with pytest.raises(InvalidSKU):
-        services.deallocate(*line_with_invalid_sku, fake_uow.batches, session)
+        services.deallocate(*line_with_invalid_sku, fake_uow)
 
 
-def test_deallocate_raises_error_for_not_allocated_line(batch, fake_uow, fake_session):
+def test_deallocate_raises_error_for_not_allocated_line(batch, fake_uow):
     services.add_batch(*batch, fake_uow)
     line_not_allocated = ('o2', 'skew', 1)
     
-    session = fake_session()
     with pytest.raises(LineIsNotAllocatedError):
-        services.deallocate(*line_not_allocated, fake_uow.batches, session)
+        services.deallocate(*line_not_allocated, fake_uow)
 
 
 def test_add_batch(batch, fake_uow):
