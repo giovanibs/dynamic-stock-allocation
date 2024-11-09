@@ -1,6 +1,13 @@
 from datetime import date
-from typing import Union
+from typing import Optional, Union
 from ninja import Schema
+
+
+class BatchIn(Schema):
+    reference: str
+    sku: str
+    purchased_qty: int
+    eta: Optional[date] = None
 
 
 class BatchOut(Schema):

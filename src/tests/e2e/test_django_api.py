@@ -104,3 +104,16 @@ def test_deallocate_400_message_for_line_not_allocated(base_url, client, repo):
     response = client.post(base_url + 'deallocate', data = line, content_type = "application/json")
     assert response.status_code == 400
     assert response.json()['message'] == 'LineIsNotAllocatedError'
+
+
+@pytest.mark.django_db
+def test_add_batch(base_url, client):
+    batch = {'reference': 'batch', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
+    response = client.post(
+        base_url + 'batches', data=batch, content_type="application/json"
+    )
+    assert response.status_code == 201
+    assert response.json()['reference'] == batch['reference']
+    assert response.json()['sku'] == batch['sku']
+    assert response.json()['available_qty'] == batch['purchased_qty']
+    assert response.json()['eta'] == batch['eta']
