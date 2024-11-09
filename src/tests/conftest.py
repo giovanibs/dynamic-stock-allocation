@@ -76,25 +76,6 @@ def repo(fake_repository):
 
 
 @pytest.fixture(scope='session')
-def fake_session():
-
-    class FakeSession:
-        def __init__(self) -> None:
-            self._commited = False
-
-        
-        @property
-        def commited(self):
-            return self._commited
-        
-        
-        def commit(self):
-            self._commited = True
-
-    return FakeSession
-
-
-@pytest.fixture(scope='session')
 def fake_uow(repo):
 
     class FakeUow(AbstractUnitOfWork):

@@ -8,21 +8,21 @@ Typical service-layer functions have similar steps:
 """
 from datetime import date
 from typing import Optional
-from allocation.adapters.repository import AbstractRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InvalidSKU
 from allocation.orchestration.uow import AbstractUnitOfWork
 
 
-def allocate(order_id: str, sku: str, qty: int, repo: AbstractRepository, session):
-    batches = repo.list()                                                   # (1)
+def allocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+    with uow:
+        batches = uow.batches.list()
     
-    if sku not in {batch.sku for batch in batches}:                         # (2)
-        raise InvalidSKU()
-    
-    batch_reference = domain_models.allocate(order_id, sku, qty, batches)   # (3)
-    repo.update(next(b for b in batches if b.reference == batch_reference))
-    session.commit()                                                        # (4)
+        if sku not in {batch.sku for batch in batches}:
+            raise InvalidSKU()
+        
+        batch_reference = domain_models.allocate(order_id, sku, qty, batches)
+        uow.batches.update(next(b for b in batches if b.reference == batch_reference))
+        uow.commit()
     return batch_reference
 
 
