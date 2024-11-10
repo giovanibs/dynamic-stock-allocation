@@ -1,0 +1,50 @@
+from allocation.adapters.repository import DjangoProductRepository
+from allocation.domain import model as domain_models
+from allocation.domain.exceptions import BatchDoesNotExist
+from dddjango.alloc import models as django_models
+import pytest
+from datetime import date
+
+
+@pytest.fixture
+def lines():
+    return [
+        domain_models.OrderLine('order1', 'skew', 1),
+        domain_models.OrderLine('order2', 'skew', 2),
+        domain_models.OrderLine('order3', 'skew', 3),
+    ]
+
+
+@pytest.fixture
+def domain_batch(lines):
+    batch = domain_models.Batch('batch', 'skew', 10, eta=date.today())
+    line1 = lines[0]
+    line2 = lines[1]
+    line3 = lines[2]
+    batch.allocate(line1)
+    batch.allocate(line2)
+    batch.allocate(line3)
+    
+    return batch
+
+
+@pytest.fixture
+def domain_product(domain_batch):
+    return domain_models.Product(domain_batch.sku, [domain_batch])
+
+
+@pytest.fixture
+def repo():
+    return DjangoProductRepository()
+
+
+@pytest.mark.django_db
+def test_can_create_a_product(lines, domain_product, repo):
+    repo.add(domain_product)
+    django_product = django_models.Product.objects.get(sku=domain_product.sku).to_domain()
+    
+    assert django_product.sku == domain_product.sku
+    assert django_product.batches[0].reference == domain_product.batches[0].reference
+    
+    for line in lines:
+        assert line in django_product.batches[0].allocations

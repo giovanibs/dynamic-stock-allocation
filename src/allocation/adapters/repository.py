@@ -134,3 +134,44 @@ class DjangoRepository(AbstractRepository):
     def list(self) -> List[domain_models.Batch]:
         batches = django_models.Batch.objects.all()
         return [batch.to_domain() for batch in batches]
+
+
+class DjangoProductRepository(AbstractProductRepository):
+
+    def add(self, product: domain_models.Product) -> None:
+        super().add(product)
+        django_product = django_models.Product.objects.create(sku=product.sku)
+        self._add_batches(product.batches, django_product)
+
+    
+    def _add_batches(self, batches, django_product):
+        for batch in batches:
+            django_batch = django_models.Batch.objects.create(
+                reference=batch.reference,
+                product=django_product,
+                purchased_qty=batch.available_qty + batch.allocated_qty,
+                eta=batch.eta,
+            )
+            self._add_lines(batch.allocations, django_batch)
+
+    
+    def _add_lines(self, allocations, django_batch):
+        for line in allocations:
+            django_models.Allocation.objects.create(
+                    batch = django_batch,
+                    order_id=line.order_id,
+                    sku=line.sku,
+                    qty=line.qty,
+                )
+
+
+    def _get(self, sku) -> domain_models.Product:
+        return super()._get(sku)
+    
+
+    def update(self, product: domain_models.Product) -> None:
+        return super().update(product)
+    
+
+    def list(self) -> List[domain_models.Product]:
+        return super().list()
