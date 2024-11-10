@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Set
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import BatchDoesNotExist
+from allocation.domain.exceptions import BatchDoesNotExist, InexistentProduct
 from dddjango.alloc import models as django_models
 
 
@@ -166,8 +166,11 @@ class DjangoProductRepository(AbstractProductRepository):
 
 
     def _get(self, sku) -> domain_models.Product:
-        return super()._get(sku)
-    
+        try:
+            return django_models.Product.objects.get(sku=sku)
+        except django_models.Product.DoesNotExist:
+            raise InexistentProduct
+
 
     def update(self, product: domain_models.Product) -> None:
         return super().update(product)

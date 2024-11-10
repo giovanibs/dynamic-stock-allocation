@@ -1,6 +1,6 @@
 from allocation.adapters.repository import DjangoProductRepository
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import BatchDoesNotExist
+from allocation.domain.exceptions import BatchDoesNotExist, InexistentProduct
 from dddjango.alloc import models as django_models
 import pytest
 from datetime import date
@@ -48,3 +48,17 @@ def test_can_create_a_product(lines, domain_product, repo):
     
     for line in lines:
         assert line in django_product.batches[0].allocations
+
+
+@pytest.mark.django_db
+def test_can_retrieve_a_product(repo):
+    django_models.Product.objects.create(sku='skew')
+    django_models.Product.objects.create(sku='sku')
+    product = repo.get('sku').to_domain()
+    assert product.sku == 'sku'
+
+
+@pytest.mark.django_db
+def test_cannot_retrieve_an_inexistent_product(repo):
+    with pytest.raises(InexistentProduct):
+        repo.get('inexistent_sku')
