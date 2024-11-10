@@ -3,7 +3,6 @@ from allocation.domain import model as domain_models
 from allocation.domain.exceptions import BatchDoesNotExist, InexistentProduct
 from dddjango.alloc import models as django_models
 import pytest
-from datetime import date
 
 
 @pytest.fixture
@@ -16,8 +15,8 @@ def lines():
 
 
 @pytest.fixture
-def domain_batch(lines):
-    batch = domain_models.Batch('batch', 'skew', 10, eta=date.today())
+def domain_batch(lines, today):
+    batch = domain_models.Batch('batch', 'skew', 10, eta=today)
     line1 = lines[0]
     line2 = lines[1]
     line3 = lines[2]
@@ -62,3 +61,14 @@ def test_can_retrieve_a_product(repo):
 def test_cannot_retrieve_an_inexistent_product(repo):
     with pytest.raises(InexistentProduct):
         repo.get('inexistent_sku')
+
+
+@pytest.mark.django_db
+def test_can_update_product_after_adding_batch(repo):
+    product = domain_models.Product('sku', [domain_models.Batch('batch', 'sku', 10)])
+    repo.add(product)
+    product.add_batch('other_batch', 'sku', 10)
+    repo.update(product)
+    updated_domain_product_from_db = repo.get('sku').to_domain()
+    assert 'batch' in {b.reference for b in updated_domain_product_from_db.batches}
+    assert 'other_batch' in {b.reference for b in updated_domain_product_from_db.batches}

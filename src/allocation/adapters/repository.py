@@ -155,7 +155,8 @@ class DjangoProductRepository(AbstractProductRepository):
             self._add_lines(batch.allocations, django_batch)
 
     
-    def _add_lines(self, allocations, django_batch):
+    @staticmethod
+    def _add_lines(allocations, django_batch):
         for line in allocations:
             django_models.Allocation.objects.create(
                     batch = django_batch,
@@ -172,9 +173,23 @@ class DjangoProductRepository(AbstractProductRepository):
             raise InexistentProduct
 
 
-    def update(self, product: domain_models.Product) -> None:
-        return super().update(product)
-    
+    def update(self, updated_product: domain_models.Product) -> None:
+        current_django_product = self.get(updated_product.sku)
+        current_domain_product = current_django_product.to_domain()
+        current_batches_ref = {b.reference for b in current_domain_product.batches}
+        updated_batches_ref = {b.reference for b in updated_product.batches}
+        
+        for batch_ref in updated_batches_ref - current_batches_ref:
+            self._add_batches(
+                [self._get_batch_by_ref(updated_product.batches, batch_ref)],
+                current_django_product
+            )
 
+
+    @staticmethod
+    def _get_batch_by_ref(batches, ref: str):
+        return next(batch for batch in batches if batch.reference == ref)
+
+    
     def list(self) -> List[domain_models.Product]:
         return super().list()
