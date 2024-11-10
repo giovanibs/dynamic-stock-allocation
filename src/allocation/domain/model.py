@@ -87,38 +87,49 @@ class Batch:
         return list(self._allocations)
 
 
-def allocate(order_id: str, sku: str, qty: int, batches: List[Batch]) -> str:
-    """Domain service"""
-    if sku not in {batch.sku for batch in batches}:
-        raise InvalidSKU()
-    line = OrderLine(order_id, sku, qty)
-    try:
-        batch = next(batch for batch in sorted(batches) if batch.can_allocate(line))
-    except StopIteration:
-        raise OutOfStock()
-    
-    batch.allocate(line)
-    return batch.reference
+class Product:
+    """Aggregate for batches."""
+
+    def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
+        self._sku = sku
+        self._batches = batches
 
 
-def deallocate(order_id: str, sku: str, qty: int, batches: List[Batch]) -> str:
-    """Domain service to deallocate a line (expressed as primitives)."""    
-    
-    if sku not in {batch.sku for batch in batches}:
-        raise InvalidSKU()
-    
-    line = OrderLine(order_id, sku, qty)
-    batch = _find_batch_with_allocated_line(line, batches)
-    
-    if not batch:
-        raise LineIsNotAllocatedError()
-    
-    batch.deallocate(line)
-    return batch.reference
+    def allocate(self, order_id: str, sku: str, qty: int) -> str:
+
+        if sku != self._sku:
+            raise InvalidSKU()
+
+        line = OrderLine(order_id, sku, qty)
+        batch = self._get_suitable_batch_or_raise_error(line)
+        batch.allocate(line)
+        return batch.reference
 
 
-def _find_batch_with_allocated_line(line: OrderLine, batches: List[Batch]):
-    try:
-        return next(batch for batch in batches if line in batch.allocations)
-    except StopIteration:
-        return None
+    def _get_suitable_batch_or_raise_error(self, line):
+        try:
+            return next(batch 
+                         for batch in sorted(self._batches)
+                         if batch.can_allocate(line))
+        except StopIteration:
+            raise OutOfStock()
+
+
+    def deallocate(self, order_id: str, sku: str, qty: int) -> str:
+        
+        if sku != self._sku:
+            raise InvalidSKU()
+        
+        line = OrderLine(order_id, sku, qty)
+        batch = self._get_batch_with_allocated_line_or_raise_error(line)
+        batch.deallocate(line)
+        return batch.reference
+
+
+    def _get_batch_with_allocated_line_or_raise_error(self, line: OrderLine):
+        try:
+            return next(batch
+                        for batch in self._batches
+                        if line in batch.allocations)
+        except StopIteration:
+            raise LineIsNotAllocatedError()
