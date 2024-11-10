@@ -92,7 +92,17 @@ class Product:
 
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
         self._sku = sku
-        self._batches = batches
+        self._batches = batches if batches is not None else []
+
+
+    @property
+    def sku(self):
+        return self._sku
+    
+
+    @property
+    def batches(self):
+        return self._batches
 
 
     def allocate(self, order_id: str, sku: str, qty: int) -> str:
