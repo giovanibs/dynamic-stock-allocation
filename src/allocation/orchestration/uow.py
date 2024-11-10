@@ -1,10 +1,33 @@
 from abc import ABC, abstractmethod
-from allocation.adapters.repository import AbstractRepository, DjangoRepository
+from allocation.adapters.repository import (
+    AbstractRepository, DjangoRepository, AbstractProductRepository)
 from django.db import transaction
 
 
 class AbstractUnitOfWork(ABC):
     batches: AbstractRepository
+
+
+    def __exit__(self, *args):
+        self.rollback()
+
+    
+    def __enter__(self):
+        return self
+
+
+    @abstractmethod
+    def commit(self):
+        raise NotImplementedError()
+
+
+    @abstractmethod
+    def rollback(self):
+        raise NotImplementedError()
+
+
+class AbstractProductUnitOfWork(ABC):
+    products: AbstractProductRepository
 
 
     def __exit__(self, *args):

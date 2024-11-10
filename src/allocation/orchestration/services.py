@@ -9,11 +9,11 @@ Typical service-layer functions have similar steps:
 from datetime import date
 from typing import Optional
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import InvalidSKU
-from allocation.orchestration.uow import AbstractUnitOfWork
+from allocation.domain.exceptions import InvalidSKU, InexistentProduct
+from allocation.orchestration.uow import AbstractProductUnitOfWork
 
 
-def allocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+def allocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
     with uow:
         batches = uow.batches.list()
     
@@ -26,7 +26,7 @@ def allocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
     return batch_reference
 
 
-def deallocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+def deallocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
     with uow:
         batches = uow.batches.list()
         batch_reference = domain_models.deallocate(order_id, sku, qty, batches)
@@ -39,8 +39,13 @@ def add_batch(reference: str,
               sku: str,
               purchased_qty: int,
               eta: Optional[date],
-              uow: AbstractUnitOfWork):
-    
+              uow: AbstractProductUnitOfWork
+) -> None:
+    batch = (reference, sku, purchased_qty, eta)
     with uow:
-        uow.batches.add(domain_models.Batch(reference, sku, purchased_qty, eta))
+        try:
+            uow.products.get(sku=sku).add_batch(*batch)
+        except InexistentProduct:
+            uow.products.add(domain_models.Product(sku, [domain_models.Batch(*batch)]))
+        
         uow.commit()

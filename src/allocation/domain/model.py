@@ -96,13 +96,19 @@ class Product:
 
 
     @property
-    def sku(self):
+    def sku(self) -> str:
         return self._sku
     
 
     @property
-    def batches(self):
+    def batches(self) -> List[Batch]:
         return self._batches
+    
+
+    def add_batch(self, reference: str, sku: str, purchased_qty: int,
+                  eta: Optional[date] = None
+    ):
+        self._batches.append(Batch(reference, sku, purchased_qty, eta))
 
 
     def allocate(self, order_id: str, sku: str, qty: int) -> str:

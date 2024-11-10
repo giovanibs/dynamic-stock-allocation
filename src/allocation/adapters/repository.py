@@ -40,6 +40,43 @@ class AbstractRepository(ABC):
     @abstractmethod
     def list(self) -> List[domain_models.Batch]:
         raise NotImplementedError()
+
+
+class AbstractProductRepository(ABC):
+
+    def __init__(self) -> None:
+        self._seen: Set[domain_models.Product] = set()
+
+
+    @property
+    def seen(self):
+        return self._seen
+
+
+    @abstractmethod
+    def add(self, product: domain_models.Product) -> None:
+        self._seen.add(product)
+
+
+    def get(self, sku) -> domain_models.Product:
+        product = self._get(sku)
+        self._seen.add(product)
+        return product
+    
+
+    @abstractmethod
+    def _get(self, sku) -> domain_models.Product:
+        raise NotImplementedError()
+    
+
+    @abstractmethod
+    def update(self, product: domain_models.Product) -> None:
+        raise NotImplementedError()
+    
+
+    @abstractmethod
+    def list(self) -> List[domain_models.Product]:
+        raise NotImplementedError()
     
 
 class DjangoRepository(AbstractRepository):
