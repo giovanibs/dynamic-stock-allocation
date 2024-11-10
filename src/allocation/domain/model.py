@@ -92,7 +92,12 @@ class Product:
 
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
         self._sku = sku
-        self._batches = batches if batches is not None else []
+        self._batches = []
+
+        if batches:
+            for batch in batches:
+                self.validate_sku(batch.sku)
+                self._batches.append(batch)
 
 
     @property
@@ -108,14 +113,13 @@ class Product:
     def add_batch(self, reference: str, sku: str, purchased_qty: int,
                   eta: Optional[date] = None
     ):
+        self.validate_sku(sku)
         self._batches.append(Batch(reference, sku, purchased_qty, eta))
 
 
     def allocate(self, order_id: str, sku: str, qty: int) -> str:
 
-        if sku != self._sku:
-            raise InvalidSKU()
-
+        self.validate_sku(sku)
         line = OrderLine(order_id, sku, qty)
         batch = self._get_suitable_batch_or_raise_error(line)
         batch.allocate(line)
@@ -133,9 +137,7 @@ class Product:
 
     def deallocate(self, order_id: str, sku: str, qty: int) -> str:
         
-        if sku != self._sku:
-            raise InvalidSKU()
-        
+        self.validate_sku(sku)
         line = OrderLine(order_id, sku, qty)
         batch = self._get_batch_with_allocated_line_or_raise_error(line)
         batch.deallocate(line)
@@ -149,3 +151,8 @@ class Product:
                         if line in batch.allocations)
         except StopIteration:
             raise LineIsNotAllocatedError()
+        
+
+    def validate_sku(self, sku):
+        if sku != self._sku:
+            raise InvalidSKU()

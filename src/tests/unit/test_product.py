@@ -79,3 +79,33 @@ def test_deallocate_raises_error_for_not_allocated_line():
     
     with pytest.raises(LineIsNotAllocatedError):
         product.deallocate(*line_not_allocated)
+
+
+def test_can_add_valid_batch():
+    product = Product('sku')
+    batch = ('batch', 'sku', 10)
+    product.add_batch(*batch)
+    assert 'batch' in {b.reference for b in product.batches}
+
+
+def test_cannot_add_batch_with_different_sku():
+    product = Product('sku')
+    batch = ('batch', 'other_sku', 10)
+    
+    with pytest.raises(InvalidSKU):
+        product.add_batch(*batch)
+
+
+def test_can_instantiate_product_with_batches():
+    batch = Batch('batch', 'skew', 10)
+    other_batch = Batch('other_batch', 'skew', 10)
+    product = Product('skew', [batch, other_batch])
+    assert batch.reference in {b.reference for b in product.batches}
+    assert other_batch.reference in {b.reference for b in product.batches}
+
+
+def test_cannot_instantiate_product_with_invalid_batch():
+    batch = Batch('batch', 'other_skew', 10)
+    
+    with pytest.raises(InvalidSKU):
+        Product('skew', [batch])
