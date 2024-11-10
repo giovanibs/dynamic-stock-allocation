@@ -24,9 +24,9 @@ def allocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
 
 def deallocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
     with uow:
-        batches = uow.batches.list()
-        batch_reference = domain_models.deallocate(order_id, sku, qty, batches)
-        uow.batches.update(next(b for b in batches if b.reference == batch_reference))
+        product = uow.products.get(sku)
+        batch_reference = product.deallocate(order_id, sku, qty)
+        uow.products.update(product)
         uow.commit()
     return batch_reference
 

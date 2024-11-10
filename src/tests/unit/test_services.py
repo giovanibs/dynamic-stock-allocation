@@ -158,63 +158,60 @@ class TestAllocate:
             services.allocate(*line_with_greater_qty, uow)
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_deallocate_returns_batch_reference(uow):
-    batch_with_the_line = ('it_is_me', 'skew', 10, None)
-    batch_without_the_line = ('it_is_not_me', 'skew', 1, None)
-    services.add_batch(*batch_with_the_line, uow)
-    services.add_batch(*batch_without_the_line, uow)
-    line = ('o1', 'skew', 10)
-    services.allocate(*line, uow)
-    
-    batch_reference = services.deallocate(*line, uow)
-    assert batch_reference == batch_with_the_line[0]
+class TestDeallocate:
+
+    def test_deallocate_returns_batch_reference(self, uow):
+        batch_with_the_line = ('it_is_me', 'skew', 10, None)
+        batch_without_the_line = ('it_is_not_me', 'skew', 1, None)
+        services.add_batch(*batch_with_the_line, uow)
+        services.add_batch(*batch_without_the_line, uow)
+        line = ('o1', 'skew', 10)
+        services.allocate(*line, uow)
+        
+        batch_reference = services.deallocate(*line, uow)
+        assert batch_reference == batch_with_the_line[0]
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_deallocate_commits_on_happy_path(batch, uow):
-    services.add_batch(*batch, uow)
-    line = ('o1', 'skew', 1)
-    services.allocate(*line, uow)
-    
-    services.deallocate(*line, uow)
-    assert uow.commited == True
+    def test_deallocate_commits_on_happy_path(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line = ('o1', 'skew', 1)
+        services.allocate(*line, uow)
+        
+        services.deallocate(*line, uow)
+        assert uow.commited == True
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_deallocate_does_not_commit_on_error(batch, uow):
-    services.add_batch(*batch, uow)
-    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-    line_not_allocated = ('o2', 'skew', 1)
-    
-    try:
-        services.deallocate(*line_with_invalid_sku, uow)
-    except InvalidSKU:
-        pass
-    
-    assert uow.commited == False
+    def test_deallocate_does_not_commit_on_error(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+        line_not_allocated = ('o2', 'skew', 1)
+        
+        try:
+            services.deallocate(*line_with_invalid_sku, uow)
+        except InexistentProduct:
+            pass
+        
+        assert uow.commited == False
 
-    try:
-        services.deallocate(*line_not_allocated, uow)
-    except LineIsNotAllocatedError:
-        pass
+        try:
+            services.deallocate(*line_not_allocated, uow)
+        except LineIsNotAllocatedError:
+            pass
 
-    assert uow.commited == False
-
-
-@pytest.mark.skip('One refactor at a time!')
-def test_deallocate_raises_error_for_invalid_sku(batch, uow):
-    services.add_batch(*batch, uow)
-    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-    
-    with pytest.raises(InvalidSKU):
-        services.deallocate(*line_with_invalid_sku, uow)
+        assert uow.commited == False
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_deallocate_raises_error_for_not_allocated_line(batch, uow):
-    services.add_batch(*batch, uow)
-    line_not_allocated = ('o2', 'skew', 1)
-    
-    with pytest.raises(LineIsNotAllocatedError):
-        services.deallocate(*line_not_allocated, uow)
+    def test_deallocate_raises_error_for_invalid_sku(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+        
+        with pytest.raises(InexistentProduct):
+            services.deallocate(*line_with_invalid_sku, uow)
+
+
+    def test_deallocate_raises_error_for_not_allocated_line(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_not_allocated = ('o2', 'skew', 1)
+        
+        with pytest.raises(LineIsNotAllocatedError):
+            services.deallocate(*line_not_allocated, uow)
