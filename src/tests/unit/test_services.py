@@ -101,64 +101,61 @@ class TestAddBatch:
         assert uow.commited
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_allocate_commits_on_happy_path(batch, uow):
-    services.add_batch(*batch, uow)
-    line = ('o1', 'skew', 1)
-    
-    services.allocate(*line, uow)
-    assert uow.commited == True
+class TestAllocate:
+
+    def test_allocate_commits_on_happy_path(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line = ('o1', 'skew', 1)
+        
+        services.allocate(*line, uow)
+        assert uow.commited == True
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_allocate_does_not_commit_on_error(batch, uow):
-    services.add_batch(*batch, uow)
-    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-    line_with_greater_qty = ('o2', 'skew', 11)
-    
-    try:
-        services.allocate(*line_with_invalid_sku, uow)
-    except InvalidSKU:
-        pass
-    
-    assert uow.commited == False
+    def test_allocate_does_not_commit_on_error(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+        line_with_greater_qty = ('o2', 'skew', 11)
+        
+        try:
+            services.allocate(*line_with_invalid_sku, uow)
+        except InexistentProduct:
+            pass
+        
+        assert uow.commited == False
 
-    try:
-        services.allocate(*line_with_greater_qty, uow)
-    except OutOfStock:
-        pass
+        try:
+            services.allocate(*line_with_greater_qty, uow)
+        except OutOfStock:
+            pass
 
-    assert uow.commited == False
-
-
-@pytest.mark.skip('One refactor at a time!')
-def test_allocate_returns_batch_reference(today, later, uow):
-    earlier_batch = ('earlier', 'skew', 10, today)
-    later_batch = ('earlier', 'skew', 10, later)
-    services.add_batch(*earlier_batch, uow)
-    services.add_batch(*later_batch, uow)
-    line = ('o1', 'skew', 1)
-    
-    batch_reference = services.allocate(*line, uow)
-    assert batch_reference == earlier_batch[0]
+        assert uow.commited == False
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_allocate_raises_error_for_invalid_sku(batch, uow):
-    services.add_batch(*batch, uow)
-    line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-    
-    with pytest.raises(InvalidSKU):
-        services.allocate(*line_with_invalid_sku, uow)
+    def test_allocate_returns_batch_reference(self, today, later, uow):
+        earlier_batch = ('earlier', 'skew', 10, today)
+        later_batch = ('earlier', 'skew', 10, later)
+        services.add_batch(*earlier_batch, uow)
+        services.add_batch(*later_batch, uow)
+        line = ('o1', 'skew', 1)
+        
+        batch_reference = services.allocate(*line, uow)
+        assert batch_reference == earlier_batch[0]
 
 
-@pytest.mark.skip('One refactor at a time!')
-def test_allocate_raises_error_for_overallocation(batch, uow):
-    services.add_batch(*batch, uow)
-    line_with_greater_qty = ('o2', 'skew', 11)
-    
-    with pytest.raises(OutOfStock):
-        services.allocate(*line_with_greater_qty, uow)
+    def test_allocate_raises_error_for_invalid_sku(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
+        
+        with pytest.raises(InexistentProduct):
+            services.allocate(*line_with_invalid_sku, uow)
+
+
+    def test_allocate_raises_error_for_overallocation(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_greater_qty = ('o2', 'skew', 11)
+        
+        with pytest.raises(OutOfStock):
+            services.allocate(*line_with_greater_qty, uow)
 
 
 @pytest.mark.skip('One refactor at a time!')
