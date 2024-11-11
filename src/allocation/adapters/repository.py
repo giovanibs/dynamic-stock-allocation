@@ -174,7 +174,8 @@ class DjangoProductRepository(AbstractProductRepository):
 
 
     def update(self, updated_product: domain_models.Product) -> None:
-        current_domain_product = self.get(updated_product.sku)
+        # not using `get` here to prevent triggering update on uow commit
+        current_domain_product = self._get_django_model(updated_product.sku).to_domain()
         
         self._delete_removed_allocations_from_updated_product(
             updated_product.batches,
