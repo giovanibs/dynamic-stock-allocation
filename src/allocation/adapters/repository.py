@@ -59,13 +59,13 @@ class AbstractProductRepository(ABC):
 
 
     def get(self, sku) -> domain_models.Product:
-        product = self._get(sku)
+        product = self._get_django_model(sku).to_domain()
         self._seen.add(product)
         return product
     
 
     @abstractmethod
-    def _get(self, sku) -> domain_models.Product:
+    def _get_django_model(self, sku) -> django_models.Product:
         raise NotImplementedError()
     
 
@@ -166,7 +166,7 @@ class DjangoProductRepository(AbstractProductRepository):
                 )
 
 
-    def _get(self, sku) -> domain_models.Product:
+    def _get_django_model(self, sku) -> django_models.Product:
         try:
             return django_models.Product.objects.get(sku=sku)
         except django_models.Product.DoesNotExist:
@@ -174,25 +174,28 @@ class DjangoProductRepository(AbstractProductRepository):
 
 
     def update(self, updated_product: domain_models.Product) -> None:
-        current_django_product = self.get(updated_product.sku)
-        current_domain_product = current_django_product.to_domain()
+        current_domain_product = self.get(updated_product.sku)
         current_batches_ref = {b.reference for b in current_domain_product.batches}
         updated_batches_ref = {b.reference for b in updated_product.batches}
 
         self._create_new_allocations_from_updated_product(
             updated_product.batches,
-            current_domain_product
+            current_domain_product.batches
         )
         
         for batch_ref in updated_batches_ref - current_batches_ref:
             self._add_batches(
                 [self._get_batch_by_ref(updated_product.batches, batch_ref)],
-                current_django_product
+                self._get_django_model(updated_product.sku)
             )
-    
 
-    def _create_new_allocations_from_updated_product(self, updated_batches, current_batches):
-        for batch in current_batches.batches:
+    
+    def _create_new_allocations_from_updated_product(
+            self,
+            updated_batches: domain_models.Batch,
+            current_batches: domain_models.Batch
+    ):
+        for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)
             django_batch = django_models.Batch.objects.get(reference=batch.reference)
             new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}

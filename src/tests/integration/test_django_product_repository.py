@@ -53,7 +53,7 @@ def test_can_create_a_product(lines, domain_product, repo):
 def test_can_retrieve_a_product(repo):
     django_models.Product.objects.create(sku='skew')
     django_models.Product.objects.create(sku='sku')
-    product = repo.get('sku').to_domain()
+    product = repo.get('sku')
     assert product.sku == 'sku'
 
 
@@ -69,7 +69,7 @@ def test_can_update_product_after_adding_batch(repo):
     repo.add(product)
     product.add_batch('other_batch', 'sku', 10)
     repo.update(product)
-    updated_domain_product_from_db = repo.get('sku').to_domain()
+    updated_domain_product_from_db = repo.get('sku')
     assert 'batch' in {b.reference for b in updated_domain_product_from_db.batches}
     assert 'other_batch' in {b.reference for b in updated_domain_product_from_db.batches}
 
@@ -79,6 +79,6 @@ def test_can_update_product_after_allocating_a_line(repo, domain_batch, domain_p
     repo.add(domain_product)
     domain_product.allocate('new_line', domain_product.sku, 1)
     repo.update(domain_product)
-    updated_domain_batch_from_db = repo.get(domain_product.sku).to_domain().batches[0]
+    updated_domain_batch_from_db = repo.get(domain_product.sku).batches[0]
     
     assert set(updated_domain_batch_from_db.allocations) == set(domain_batch.allocations)
