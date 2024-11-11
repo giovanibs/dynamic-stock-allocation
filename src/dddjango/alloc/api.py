@@ -53,7 +53,7 @@ def allocate(request, payload: OrderLineIn):
 
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
 def deallocate(request, payload: OrderLineIn):
-    uow = DjangoUoW()
+    uow = DjangoProductUoW()
     line = payload.dict()
     try:
         batch_ref = services.deallocate(
