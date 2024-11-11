@@ -229,4 +229,4 @@ class DjangoProductRepository(AbstractProductRepository):
 
     
     def list(self) -> List[domain_models.Product]:
-        return super().list()
+        return [p.to_domain() for p in django_models.Product.objects.all()]

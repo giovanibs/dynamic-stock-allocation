@@ -92,3 +92,13 @@ def test_can_update_product_after_deallocating_a_line(repo, domain_batch, domain
     updated_domain_batch_from_db = repo.get(domain_product.sku).batches[0]
     
     assert set(updated_domain_batch_from_db.allocations) == set(domain_batch.allocations)
+
+
+@pytest.mark.django_db
+def test_can_return_list_of_products(repo):
+    repo.add(domain_models.Product('sku1'))
+    repo.add(domain_models.Product('sku2'))
+    repo.add(domain_models.Product('sku3'))
+    products = repo.list()
+
+    assert {'sku1', 'sku2', 'sku3'} == {p.sku for p in products}
