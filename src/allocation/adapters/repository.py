@@ -178,6 +178,11 @@ class DjangoProductRepository(AbstractProductRepository):
         current_batches_ref = {b.reference for b in current_domain_product.batches}
         updated_batches_ref = {b.reference for b in updated_product.batches}
 
+        self._delete_removed_allocations_from_updated_product(
+            updated_product.batches,
+            current_domain_product.batches
+        )
+        
         self._create_new_allocations_from_updated_product(
             updated_product.batches,
             current_domain_product.batches
@@ -189,11 +194,27 @@ class DjangoProductRepository(AbstractProductRepository):
                 self._get_django_model(updated_product.sku)
             )
 
+
+    def _delete_removed_allocations_from_updated_product(
+            self,
+            updated_batches: List[domain_models.Batch],
+            current_batches: List[domain_models.Batch],
+    ):
+        for batch in current_batches:
+            updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)
+            django_batch = django_models.Batch.objects.get(reference=batch.reference)
+            removed_lines_order_id = {l.order_id for l in batch.allocations
+                                      if l not in updated_batch.allocations}
+            
+            for line in django_batch.allocations.all():
+                if line.order_id in removed_lines_order_id:
+                    line.delete()
+    
     
     def _create_new_allocations_from_updated_product(
             self,
-            updated_batches: domain_models.Batch,
-            current_batches: domain_models.Batch
+            updated_batches: List[domain_models.Batch],
+            current_batches: List[domain_models.Batch]
     ):
         for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)

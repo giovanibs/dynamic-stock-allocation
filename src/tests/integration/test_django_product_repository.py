@@ -82,3 +82,13 @@ def test_can_update_product_after_allocating_a_line(repo, domain_batch, domain_p
     updated_domain_batch_from_db = repo.get(domain_product.sku).batches[0]
     
     assert set(updated_domain_batch_from_db.allocations) == set(domain_batch.allocations)
+
+
+@pytest.mark.django_db
+def test_can_update_product_after_deallocating_a_line(repo, domain_batch, domain_product, lines):
+    repo.add(domain_product)
+    domain_product.deallocate(lines[1].order_id, lines[1].sku, lines[1].qty)
+    repo.update(domain_product)
+    updated_domain_batch_from_db = repo.get(domain_product.sku).batches[0]
+    
+    assert set(updated_domain_batch_from_db.allocations) == set(domain_batch.allocations)
