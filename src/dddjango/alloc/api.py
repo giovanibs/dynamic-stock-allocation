@@ -1,5 +1,5 @@
 from ninja import NinjaAPI
-from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists
+from allocation.domain.exceptions import InexistentProduct, InvalidSKU, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists
 from allocation.orchestration import services
 from allocation.orchestration.uow import DjangoProductUoW, DjangoUoW
 from dddjango.alloc.schemas import (
@@ -45,8 +45,8 @@ def allocate(request, payload: OrderLineIn):
         )
     except OutOfStock:
         return 400, {'message': 'OutOfStock'}
-    except InvalidSKU:
-        return 400, {'message': 'InvalidSKU'}
+    except InexistentProduct:
+        return 400, {'message': 'InexistentProduct'}
         
     return 201, {'batch_reference': batch_ref}
 

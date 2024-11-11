@@ -88,9 +88,8 @@ def test_allocate_400_message_for_out_of_stock(base_url, client):
     assert response.json()['message'] == 'OutOfStock'
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
-def test_allocate_400_message_for_invalid_sku(base_url, client):
+def test_allocate_400_message_for_inexistent_product(base_url, client):
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
     response = client.post(
         path = base_url + 'allocate',
@@ -98,7 +97,7 @@ def test_allocate_400_message_for_invalid_sku(base_url, client):
         content_type = "application/json"
     )
     assert response.status_code == 400
-    assert response.json()['message'] == 'InvalidSKU'
+    assert response.json()['message'] == 'InexistentProduct'
 
 
 @pytest.mark.skip
