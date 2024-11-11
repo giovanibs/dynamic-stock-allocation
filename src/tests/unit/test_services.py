@@ -5,7 +5,7 @@ from allocation.domain.exceptions import (
     InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists)
 from allocation.orchestration import services
 from allocation.domain.model import Product
-from allocation.orchestration.uow import AbstractProductUnitOfWork, AbstractUnitOfWork
+from allocation.orchestration.uow import AbstractProductUnitOfWork
 from dddjango.alloc.models import Product
 
 
@@ -62,7 +62,7 @@ class FakeProductUoW(AbstractProductUnitOfWork):
             return self._products
         
 
-        def __enter__(self) -> AbstractUnitOfWork:
+        def __enter__(self) -> AbstractProductUnitOfWork:
             self._commited = False
             return super().__enter__()
         

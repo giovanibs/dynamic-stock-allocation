@@ -1,7 +1,9 @@
 from ninja import NinjaAPI
-from allocation.domain.exceptions import InexistentProduct, InvalidSKU, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists
+from allocation.domain.exceptions import (
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists
+)
 from allocation.orchestration import services
-from allocation.orchestration.uow import DjangoProductUoW, DjangoUoW
+from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc.schemas import (
     BatchIn, BatchOut, BatchRef, Message, OrderLineIn, ProductIn, ProductOut
 )

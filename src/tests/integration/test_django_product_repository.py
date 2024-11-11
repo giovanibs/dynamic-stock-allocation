@@ -1,6 +1,6 @@
 from allocation.adapters.repository import DjangoProductRepository
 from allocation.domain import model as domain_models
-from allocation.domain.exceptions import BatchDoesNotExist, InexistentProduct
+from allocation.domain.exceptions import InexistentProduct
 from dddjango.alloc import models as django_models
 import pytest
 
