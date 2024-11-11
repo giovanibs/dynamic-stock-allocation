@@ -178,12 +178,25 @@ class DjangoProductRepository(AbstractProductRepository):
         current_domain_product = current_django_product.to_domain()
         current_batches_ref = {b.reference for b in current_domain_product.batches}
         updated_batches_ref = {b.reference for b in updated_product.batches}
+
+        self._create_new_allocations_from_updated_product(
+            updated_product.batches,
+            current_domain_product
+        )
         
         for batch_ref in updated_batches_ref - current_batches_ref:
             self._add_batches(
                 [self._get_batch_by_ref(updated_product.batches, batch_ref)],
                 current_django_product
             )
+    
+
+    def _create_new_allocations_from_updated_product(self, updated_batches, current_batches):
+        for batch in current_batches.batches:
+            updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)
+            django_batch = django_models.Batch.objects.get(reference=batch.reference)
+            new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}
+            self._add_lines(new_lines, django_batch)
 
 
     @staticmethod
