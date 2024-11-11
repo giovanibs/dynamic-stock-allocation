@@ -128,9 +128,9 @@ def test_deallocate_400_message_for_inexistent_product(base_url, client):
     assert response.json()['message'] == 'InexistentProduct'
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_deallocate_400_message_for_line_not_allocated(base_url, client): 
+    post_to_create_product('skew')
     batch = ('batch', 'skew', 10)
     post_to_create_batch(*batch)
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
