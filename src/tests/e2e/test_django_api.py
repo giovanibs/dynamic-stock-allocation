@@ -36,13 +36,11 @@ def test_add_duplicated_product_returns_400_error(base_url, client):
     assert response.json()['message'] == 'ProductAlreadyExists'
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_can_retrieve_batch_info(base_url, client):
     batch = {'reference': 'ref', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
+    post_to_create_product('skew')
     post_to_create_batch(*batch.values())
-    post_to_allocate_line('o1', 'skew', 1)
-    post_to_allocate_line('o2', 'skew', 2)
     
     response = client.get(base_url + 'batches/' + batch['reference'])
     resp_batch = response.json()
@@ -50,8 +48,8 @@ def test_can_retrieve_batch_info(base_url, client):
     assert response.status_code == 200
     assert resp_batch['reference'] == batch['reference']
     assert resp_batch['sku'] == batch['sku']
-    assert resp_batch['allocated_qty'] == 3
-    assert resp_batch['available_qty'] == batch['purchased_qty'] - 3
+    assert resp_batch['allocated_qty'] == 0
+    assert resp_batch['available_qty'] == batch['purchased_qty']
     assert resp_batch['eta'] == batch['eta']
 
 

@@ -27,9 +27,10 @@ def add_product(request, payload: ProductIn):
 
 @api.get('batches/{batch_ref}', response=BatchOut)
 def get_batch_by_ref(request, batch_ref: str):
-    uow = DjangoUoW()
-    with uow:
-        batch = uow.batches.get(batch_ref)
+    with DjangoProductUoW() as uow:
+        products = uow.products.list()
+        batches = {b for p in products for b in p.batches}
+        batch = next(batch for batch in batches if batch.reference == batch_ref)
 
     return 200, batch
 
