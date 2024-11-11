@@ -116,9 +116,8 @@ def test_api_returns_batch_ref_on_deallocation(base_url, client):
     assert response.json()['batch_reference'] == batch[0]
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
-def test_deallocate_400_message_for_invalid_sku(base_url, client):
+def test_deallocate_400_message_for_inexistent_product(base_url, client):
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
     response = client.post(
         path = base_url + 'deallocate',
@@ -126,7 +125,7 @@ def test_deallocate_400_message_for_invalid_sku(base_url, client):
         content_type = "application/json"
     )
     assert response.status_code == 400
-    assert response.json()['message'] == 'InvalidSKU'
+    assert response.json()['message'] == 'InexistentProduct'
 
 
 @pytest.mark.skip

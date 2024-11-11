@@ -59,8 +59,8 @@ def deallocate(request, payload: OrderLineIn):
         batch_ref = services.deallocate(
             line['order_id'], line['sku'], line['qty'], uow
         )
-    except InvalidSKU:
-        return 400, {'message': 'InvalidSKU'}
+    except InexistentProduct:
+        return 400, {'message': 'InexistentProduct'}
     except LineIsNotAllocatedError:
         return 400, {'message': 'LineIsNotAllocatedError'}
         
