@@ -147,9 +147,9 @@ def test_deallocate_400_message_for_line_not_allocated(base_url, client):
     assert response.json()['message'] == 'LineIsNotAllocatedError'
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_add_batch(base_url, client):
+    post_to_create_product('skew')
     batch = {'reference': 'batch', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
     response = client.post(
         base_url + 'batches', data=batch, content_type="application/json"

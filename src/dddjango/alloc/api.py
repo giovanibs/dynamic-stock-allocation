@@ -68,9 +68,12 @@ def deallocate(request, payload: OrderLineIn):
 
 @api.post('batches', response={201: BatchOut})
 def add_batch(request, payload: BatchIn):
-    uow = DjangoUoW()
+    uow = DjangoProductUoW()
     batch = payload.dict()
     services.add_batch(*batch.values(), uow)
-    added_batch = uow.batches.get(batch['reference'])
+    added_batch = next(
+        b for b in uow.products.get(batch['sku']).batches
+        if b.reference == batch['reference']
+    )
 
     return 201, added_batch
