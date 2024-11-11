@@ -30,3 +30,11 @@ class BatchRef(Schema):
 
 class Message(Schema):
     message: str
+
+
+class ProductIn(Schema):
+    sku: str
+
+
+class ProductOut(Schema):
+    sku: str
