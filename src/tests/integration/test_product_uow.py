@@ -1,3 +1,4 @@
+from allocation.domain.exceptions import InvalidSKU
 from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc import models as django_models
 from allocation.domain import model as domain_models
@@ -57,6 +58,24 @@ def test_uow_does_not_commit_implicitly():
 
     with pytest.raises(django_models.Product.DoesNotExist):
         django_models.Product.objects.get(sku=product.sku)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_uow_rollbacks_on_error():
+    sku = 'skew'
+    insert_product_into_db(sku)
+    invalid_line = ('o1', 'invalid_sku', 1)
+
+    try:
+        with DjangoProductUoW() as uow:
+            product = uow.products.get(sku)
+            product.add_batch('batch', sku, 10)
+            product.allocate(*invalid_line)
+            uow.commit()
+    except InvalidSKU:
+        pass
+
+    assert retrieve_batch_from_db('batch') is None
 
 
 def insert_product_into_db(sku) -> django_models.Product:
