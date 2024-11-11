@@ -32,3 +32,7 @@ class BatchDoesNotExist(Exception):
 
 class InexistentProduct(Exception):
     """Error raised when trying to use a Product aggregate that does not exist."""
+
+
+class ProductAlreadyExists(Exception):
+    """Error raised when trying to create a Product that already exists."""

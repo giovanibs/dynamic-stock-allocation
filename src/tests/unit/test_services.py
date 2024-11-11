@@ -2,7 +2,7 @@ from typing import List, Optional
 import pytest
 from allocation.adapters.repository import AbstractProductRepository
 from allocation.domain.exceptions import (
-    InexistentProduct, LineIsNotAllocatedError, OutOfStock)
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists)
 from allocation.orchestration import services
 from allocation.domain.model import Product
 from allocation.orchestration.uow import AbstractProductUnitOfWork, AbstractUnitOfWork
@@ -89,7 +89,7 @@ def batch(tomorrow):
     return ('batch', 'skew', 10, tomorrow)
 
 
-class TestAddBatch:
+class TestAddBatchAndProduct:
 
     def test_add_batch(self, batch, uow):
         services.add_batch(*batch, uow)
@@ -100,6 +100,19 @@ class TestAddBatch:
     def test_add_batch_commits_on_happy_path(self, batch, uow):
         services.add_batch(*batch, uow)
         assert uow.commited
+    
+
+    def test_add_product(self, uow):
+        services.add_product('skew', uow)
+        assert uow.products.get('skew') is not None
+        assert uow.commited
+
+
+    def test_add_product_raises_error_for_duplicated_product(self, uow):
+        services.add_product('skew', uow)
+
+        with pytest.raises(ProductAlreadyExists):
+            services.add_product('skew', uow)
 
 
 class TestAllocate:
