@@ -53,10 +53,10 @@ def test_can_retrieve_batch_info(base_url, client):
     assert resp_batch['eta'] == batch['eta']
 
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, client):
     sku = 'skew'
+    post_to_create_product(sku)
     earliest_batch = ('today', sku, 10, today)
     in_between_batch = ('tomorrow', sku, 10, tomorrow)
     latest_batch = ('latest', sku, 10, later)

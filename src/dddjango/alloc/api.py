@@ -37,7 +37,7 @@ def get_batch_by_ref(request, batch_ref: str):
 
 @api.post('allocate', response = {201: BatchRef, 400: Message})
 def allocate(request, payload: OrderLineIn):
-    uow = DjangoUoW()
+    uow = DjangoProductUoW()
     line = payload.dict()
     try:
         batch_ref = services.allocate(
