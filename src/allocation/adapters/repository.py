@@ -175,24 +175,19 @@ class DjangoProductRepository(AbstractProductRepository):
 
     def update(self, updated_product: domain_models.Product) -> None:
         current_domain_product = self.get(updated_product.sku)
-        current_batches_ref = {b.reference for b in current_domain_product.batches}
-        updated_batches_ref = {b.reference for b in updated_product.batches}
-
+        
         self._delete_removed_allocations_from_updated_product(
             updated_product.batches,
             current_domain_product.batches
         )
-        
         self._create_new_allocations_from_updated_product(
             updated_product.batches,
             current_domain_product.batches
         )
-        
-        for batch_ref in updated_batches_ref - current_batches_ref:
-            self._add_batches(
-                [self._get_batch_by_ref(updated_product.batches, batch_ref)],
-                self._get_django_model(updated_product.sku)
-            )
+        self._add_new_batches(
+            updated_product.batches,
+            current_domain_product.batches
+        )
 
 
     def _delete_removed_allocations_from_updated_product(
@@ -221,6 +216,21 @@ class DjangoProductRepository(AbstractProductRepository):
             django_batch = django_models.Batch.objects.get(reference=batch.reference)
             new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}
             self._add_lines(new_lines, django_batch)
+
+
+    def _add_new_batches(
+            self,
+            updated_batches: List[domain_models.Batch],
+            current_batches: List[domain_models.Batch],
+    ):
+        current_batches_ref = {b.reference for b in current_batches}
+        updated_batches_ref = {b.reference for b in updated_batches}
+        
+        for batch_ref in updated_batches_ref - current_batches_ref:
+            self._add_batches(
+                [self._get_batch_by_ref(updated_batches, batch_ref)],
+                self._get_django_model(updated_batches[0].sku)
+            )
 
 
     @staticmethod
