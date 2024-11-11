@@ -2,10 +2,11 @@ from typing import List, Optional
 import pytest
 from allocation.adapters.repository import AbstractProductRepository
 from allocation.domain.exceptions import (
-    InexistentProduct, InvalidSKU, LineIsNotAllocatedError, OutOfStock)
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock)
 from allocation.orchestration import services
 from allocation.domain.model import Product
 from allocation.orchestration.uow import AbstractProductUnitOfWork, AbstractUnitOfWork
+from dddjango.alloc.models import Product
 
 
 class FakeProductRepository(AbstractProductRepository):
@@ -16,12 +17,12 @@ class FakeProductRepository(AbstractProductRepository):
 
 
         def get(self, sku) -> Product:
-            product = self._get(sku)
+            product = self._get_django_model(sku)
             self._seen.add(product)
             return product
 
 
-        def _get(self, sku: str) -> Product:
+        def _get_django_model(self, sku: str) -> Product:
             try:
                 return next(product
                             for product in self._products
