@@ -45,8 +45,8 @@ class DjangoProductUoW(AbstractProductUnitOfWork):
 
 
     def commit(self):
-        for batch in self.products.seen:
-            self.products.update(batch)
+        for product in self.products.seen:
+            self.products.update(product)
         transaction.commit()
 
 
