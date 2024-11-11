@@ -48,6 +48,17 @@ def test_uow_can_deallocate_a_line():
     assert len(retrieve_batch_from_db('batch').allocations) == 0
 
 
+@pytest.mark.django_db(transaction=True)
+def test_uow_does_not_commit_implicitly():
+    uow = DjangoProductUoW()
+    product = domain_models.Product('skew')
+    with uow:
+        uow.products.add(product)
+
+    with pytest.raises(django_models.Product.DoesNotExist):
+        django_models.Product.objects.get(sku=product.sku)
+
+
 def insert_product_into_db(sku) -> django_models.Product:
     return django_models.Product.objects.create(sku=sku)
 
