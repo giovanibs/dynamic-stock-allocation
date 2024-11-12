@@ -2,10 +2,12 @@ from abc import ABC, abstractmethod
 from allocation.adapters.repository import (
     DjangoProductRepository, AbstractProductRepository)
 from django.db import transaction
+from allocation.orchestration import message_bus
 
 
 class AbstractProductUnitOfWork(ABC):
     products: AbstractProductRepository
+    event_handler = message_bus.handle
 
 
     def __exit__(self, *args):
@@ -16,8 +18,20 @@ class AbstractProductUnitOfWork(ABC):
         return self
 
 
-    @abstractmethod
     def commit(self):
+        self._commit()
+        self._publish_events()
+
+
+    def _publish_events(self):
+        for product in self.products.seen:
+            while product.events:
+                event = product.events.pop(0)
+                self.event_handler(event)
+
+
+    @abstractmethod
+    def _commit(self):
         raise NotImplementedError()
 
 
@@ -44,7 +58,7 @@ class DjangoProductUoW(AbstractProductUnitOfWork):
         transaction.set_autocommit(True)
 
 
-    def commit(self):
+    def _commit(self):
         for product in self.products.seen:
             self.products.update(product)
         transaction.commit()

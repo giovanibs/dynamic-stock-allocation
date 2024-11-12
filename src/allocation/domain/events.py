@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 
 class Event:
-    ...
+    pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class OutOfStock(Event):
     sku: str

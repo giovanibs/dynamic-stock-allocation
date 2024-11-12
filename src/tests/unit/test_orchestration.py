@@ -1,6 +1,7 @@
 from typing import List, Optional
 import pytest
 from allocation.adapters.repository import AbstractProductRepository
+from allocation.domain import events
 from allocation.domain.exceptions import (
     InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists)
 from allocation.orchestration import services
@@ -50,6 +51,7 @@ class FakeProductUoW(AbstractProductUnitOfWork):
         def __init__(self, repo: AbstractProductRepository) -> None:
             self._products = repo
             self._commited = False
+            self.events = []
 
 
         @property
@@ -71,12 +73,16 @@ class FakeProductUoW(AbstractProductUnitOfWork):
             return super().__exit__(*args)
 
 
-        def commit(self):
+        def _commit(self):
             self._commited = True
 
 
         def rollback(self):
             pass
+
+
+        def event_handler(self, event: events.Event):
+            self.events.append(event)
 
 
 @pytest.fixture
@@ -89,7 +95,7 @@ def batch(tomorrow):
     return ('batch', 'skew', 10, tomorrow)
 
 
-class TestAddBatchAndProduct:
+class TestServicesAdd:
 
     def test_add_batch(self, batch, uow):
         services.add_batch(*batch, uow)
@@ -115,7 +121,7 @@ class TestAddBatchAndProduct:
             services.add_product('skew', uow)
 
 
-class TestAllocate:
+class TestServicesAllocate:
 
     def test_allocate_commits_on_happy_path(self, batch, uow):
         services.add_batch(*batch, uow)
@@ -174,7 +180,7 @@ class TestAllocate:
             services.allocate(*line_with_greater_qty, uow)
 
 
-class TestDeallocate:
+class TestServicesDeallocate:
 
     def test_deallocate_returns_batch_reference(self, uow):
         batch_with_the_line = ('it_is_me', 'skew', 10, None)
@@ -231,3 +237,18 @@ class TestDeallocate:
         
         with pytest.raises(LineIsNotAllocatedError):
             services.deallocate(*line_not_allocated, uow)
+
+
+class TestEvents:
+
+    def test_uow_can_collect_events_and_pass_to_handler(self, batch, uow):
+        services.add_batch(*batch, uow)
+        line_with_greater_qty = ('o2', 'skew', 11)
+
+        try:
+            services.allocate(*line_with_greater_qty, uow)
+        except OutOfStock:
+            pass
+
+        assert uow.events[0] == events.OutOfStock('skew')
+
