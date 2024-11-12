@@ -15,31 +15,8 @@ def client():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_add_product(base_url, client):
-    product = {'sku': 'skew'}
-    response = client.post(
-        base_url + 'products', data=product, content_type="application/json"
-    )
-    assert response.status_code == 201
-    assert response.json()['sku'] == product['sku']
-
-
-@pytest.mark.django_db(transaction=True)
-def test_add_duplicated_product_returns_400_error(base_url, client):
-    product = {'sku': 'skew'}
-    post_to_create_product(**product)
-
-    response = client.post(
-        base_url + 'products', data=product, content_type="application/json"
-    )
-    assert response.status_code == 400
-    assert response.json()['message'] == 'ProductAlreadyExists'
-
-
-@pytest.mark.django_db(transaction=True)
 def test_can_retrieve_batch_info(base_url, client):
     batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
-    post_to_create_product('skew')
     post_to_create_batch(*batch.values())
     
     response = client.get(base_url + 'batches/' + batch['ref'])
@@ -56,7 +33,6 @@ def test_can_retrieve_batch_info(base_url, client):
 @pytest.mark.django_db(transaction=True)
 def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, client):
     sku = 'skew'
-    post_to_create_product(sku)
     earliest_batch = ('today', sku, 10, today)
     in_between_batch = ('tomorrow', sku, 10, tomorrow)
     latest_batch = ('latest', sku, 10, later)
@@ -76,7 +52,6 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
 @pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_allocate_400_message_for_out_of_stock(base_url, client): 
-    post_to_create_product('skew')
     batch = ('batch', 'skew', 10)
     post_to_create_batch(*batch)
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 15}
@@ -103,7 +78,6 @@ def test_allocate_400_message_for_inexistent_product(base_url, client):
 
 @pytest.mark.django_db(transaction=True)
 def test_api_returns_batch_ref_on_deallocation(base_url, client):
-    post_to_create_product('skew')
     batch = ('today', 'skew', 10)
     post_to_create_batch(*batch)
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
@@ -131,7 +105,6 @@ def test_deallocate_400_message_for_inexistent_product(base_url, client):
 
 @pytest.mark.django_db(transaction=True)
 def test_deallocate_400_message_for_line_not_allocated(base_url, client): 
-    post_to_create_product('skew')
     batch = ('batch', 'skew', 10)
     post_to_create_batch(*batch)
     line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
@@ -146,7 +119,6 @@ def test_deallocate_400_message_for_line_not_allocated(base_url, client):
 
 @pytest.mark.django_db(transaction=True)
 def test_add_batch(base_url, client):
-    post_to_create_product('skew')
     batch = {'ref': 'batch', 'sku': 'skew', 'qty': 10, 'eta': None}
     response = client.post(
         base_url + 'batches', data=batch, content_type="application/json"
@@ -156,15 +128,6 @@ def test_add_batch(base_url, client):
     assert response.json()['sku'] == batch['sku']
     assert response.json()['available_qty'] == batch['qty']
     assert response.json()['eta'] == batch['eta']
-
-
-def post_to_create_product(sku: str):
-    response = Client().post(
-        path = '/api/products',
-        data = {'sku': sku},
-        content_type = "application/json"
-    )
-    assert response.status_code == 201
 
 
 def post_to_create_batch(ref: str, sku: str, qty: int, eta: Optional[date]=None):

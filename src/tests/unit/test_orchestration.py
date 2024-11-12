@@ -3,7 +3,7 @@ import pytest
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain import events
 from allocation.domain.exceptions import (
-    InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists)
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock)
 from allocation.orchestration import services
 from allocation.domain.model import Product
 from allocation.orchestration.uow import AbstractUnitOfWork
@@ -97,28 +97,19 @@ def batch(tomorrow):
 
 class TestServicesAdd:
 
-    def test_add_batch(self, batch, uow):
+    def test_can_add_a_batch(self, batch, uow):
         services.add_batch(*batch, uow)
         product = uow.products.get(batch[1])
         assert batch[0] in {b.ref for b in product.batches}
 
 
-    def test_add_batch_commits_on_happy_path(self, batch, uow):
+    def test_adding_a_batch_also_adds_a_new_product(self, batch, uow):
+        with pytest.raises(InexistentProduct):
+            uow.products.get(batch[1])
+
         services.add_batch(*batch, uow)
-        assert uow.commited
-    
-
-    def test_add_product(self, uow):
-        services.add_product('skew', uow)
-        assert uow.products.get('skew') is not None
-        assert uow.commited
-
-
-    def test_add_product_raises_error_for_duplicated_product(self, uow):
-        services.add_product('skew', uow)
-
-        with pytest.raises(ProductAlreadyExists):
-            services.add_product('skew', uow)
+        product = uow.products.get(batch[1])
+        assert batch[0] in {b.ref for b in product.batches}
 
 
 class TestServicesAllocate:

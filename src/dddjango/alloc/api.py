@@ -1,30 +1,15 @@
 from ninja import NinjaAPI
 from allocation.domain.exceptions import (
-    InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock
 )
 from allocation.orchestration import services
 from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc.schemas import (
-    BatchIn, BatchOut, BatchRef, Message, OrderLineIn, ProductIn, ProductOut
+    BatchIn, BatchOut, BatchRef, Message, OrderLineIn
 )
 
 
 api = NinjaAPI()
-
-
-@api.post('products', response={201: ProductOut, 400: Message})
-def add_product(request, payload: ProductIn):
-    uow = DjangoProductUoW()
-    product = payload.dict()
-    
-    try:
-        services.add_product(*product.values(), uow)
-    except ProductAlreadyExists:
-        return 400, {'message': 'ProductAlreadyExists'}
-    
-    added_product = uow.products.get(product['sku'])
-
-    return 201, added_product
 
 
 @api.get('batches/{batch_ref}', response=BatchOut)
