@@ -1,3 +1,4 @@
+from allocation.domain import events
 from allocation.domain.model import Batch, OrderLine, Product
 from allocation.domain.exceptions import (
     InvalidSKU, LineIsNotAllocatedError, OutOfStock)
@@ -40,13 +41,6 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
     batch_ref = product.allocate(*line)
 
     assert batch_ref == earliest_batch.reference
-
-
-def test_raises_out_of_stock_exception_if_cannot_allocate(today):
-    product = Product('skew', [Batch('not_enough', 'skew', 1, eta=today)])
-    
-    with pytest.raises(OutOfStock):
-        product.allocate('order_ref', 'skew', 2)
 
 
 def test_deallocate_returns_batch_reference():
@@ -109,3 +103,13 @@ def test_cannot_instantiate_product_with_invalid_batch():
     
     with pytest.raises(InvalidSKU):
         Product('skew', [batch])
+
+
+def test_records_out_of_stock_event_if_cannot_allocate():
+    sku = 'skew'
+    product = Product(sku)
+    product.add_batch('batch', sku, 1)
+    allocation = product.allocate('o1', sku, 2)
+
+    assert product.events[0] == events.OutOfStock(sku)
+    assert allocation is None

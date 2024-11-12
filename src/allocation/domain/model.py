@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from allocation.domain import events
 from allocation.domain.exceptions import (
     CannotOverallocateError, InvalidSKU, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
 from typing import List, Optional, Set
@@ -93,6 +94,7 @@ class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
         self._sku = sku
         self._batches = []
+        self._events: List[events.Event] = []
 
         if batches:
             for batch in batches:
@@ -110,6 +112,11 @@ class Product:
         return self._batches
     
 
+    @property
+    def events(self) -> List[events.Event]:
+        return self._events
+    
+
     def add_batch(self, reference: str, sku: str, purchased_qty: int,
                   eta: Optional[date] = None
     ):
@@ -121,7 +128,13 @@ class Product:
 
         self.validate_sku(sku)
         line = OrderLine(order_id, sku, qty)
-        batch = self._get_suitable_batch_or_raise_error(line)
+        
+        try:
+            batch = self._get_suitable_batch_or_raise_error(line)
+        except OutOfStock:
+            self._events.append(events.OutOfStock(sku))
+            return None
+        
         batch.allocate(line)
         return batch.reference
 

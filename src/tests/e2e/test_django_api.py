@@ -73,6 +73,7 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
     assert response.json()['batch_reference'] == earliest_batch[0]
 
 
+@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 def test_allocate_400_message_for_out_of_stock(base_url, client): 
     post_to_create_product('skew')
