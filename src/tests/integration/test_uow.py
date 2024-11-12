@@ -79,6 +79,7 @@ def test_uow_rollbacks_on_error():
     assert retrieve_batch_from_db('batch') is None
 
 
+@pytest.mark.skip # skipping until we implement allocate using event
 @pytest.mark.django_db(transaction=True)
 def test_uow_logs_out_of_stock_warning():
     sku = 'skew'

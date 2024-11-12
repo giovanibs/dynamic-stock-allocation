@@ -1,8 +1,9 @@
 from ninja import NinjaAPI
+from allocation.domain import events
 from allocation.domain.exceptions import (
     InexistentProduct, LineIsNotAllocatedError, OutOfStock
 )
-from allocation.orchestration import services
+from allocation.orchestration import message_bus, services
 from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc.schemas import (
     BatchIn, BatchOut, BatchRef, Message, OrderLineIn
@@ -58,7 +59,7 @@ def deallocate(request, payload: OrderLineIn):
 def add_batch(request, payload: BatchIn):
     uow = DjangoProductUoW()
     batch = payload.dict()
-    services.add_batch(*batch.values(), uow)
+    message_bus.handle(events.BatchCreated(**batch), uow)
     added_batch = next(
         b for b in uow.products.get(batch['sku']).batches
         if b.ref == batch['ref']

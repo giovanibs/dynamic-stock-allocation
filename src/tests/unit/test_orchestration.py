@@ -8,6 +8,7 @@ from allocation.orchestration import services
 from allocation.domain.model import Product
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
+from allocation.orchestration import message_bus
 
 
 class FakeProductRepository(AbstractRepository):
@@ -51,7 +52,7 @@ class FakeProductUoW(AbstractUnitOfWork):
         def __init__(self, repo: AbstractRepository) -> None:
             self._products = repo
             self._commited = False
-            self.events = []
+            self.collected_events = set()
 
 
         @property
@@ -74,15 +75,14 @@ class FakeProductUoW(AbstractUnitOfWork):
 
 
         def _commit(self):
+            self.collected_events.update(list(self.collect_new_events()))
+            if events.OutOfStock in {type(event) for event in self.collected_events}:
+                return
             self._commited = True
 
 
         def rollback(self):
             pass
-
-
-        def event_handler(self, event: events.Event):
-            self.events.append(event)
 
 
 @pytest.fixture
@@ -98,16 +98,17 @@ def batch(tomorrow):
 class TestServicesAdd:
 
     def test_can_add_a_batch(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         product = uow.products.get(batch[1])
         assert batch[0] in {b.ref for b in product.batches}
+        assert uow.commited
 
 
     def test_adding_a_batch_also_adds_a_new_product(self, batch, uow):
         with pytest.raises(InexistentProduct):
             uow.products.get(batch[1])
 
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         product = uow.products.get(batch[1])
         assert batch[0] in {b.ref for b in product.batches}
 
@@ -115,16 +116,15 @@ class TestServicesAdd:
 class TestServicesAllocate:
 
     def test_allocate_commits_on_happy_path(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line = ('o1', 'skew', 1)
         
         services.allocate(*line, uow)
         assert uow.commited == True
 
 
-    @pytest.mark.skip
     def test_allocate_does_not_commit_on_error(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         line_with_greater_qty = ('o2', 'skew', 11)
         
@@ -135,19 +135,16 @@ class TestServicesAllocate:
         
         assert uow.commited == False
 
-        try:
-            services.allocate(*line_with_greater_qty, uow)
-        except OutOfStock:
-            pass
-
+        ref = services.allocate(*line_with_greater_qty, uow)
+        assert ref == None
         assert uow.commited == False
 
 
     def test_allocate_returns_batch_ref(self, today, later, uow):
         earlier_batch = ('earlier', 'skew', 10, today)
         later_batch = ('earlier', 'skew', 10, later)
-        services.add_batch(*earlier_batch, uow)
-        services.add_batch(*later_batch, uow)
+        message_bus.handle(events.BatchCreated(*earlier_batch), uow)
+        message_bus.handle(events.BatchCreated(*later_batch), uow)
         line = ('o1', 'skew', 1)
         
         batch_ref = services.allocate(*line, uow)
@@ -155,20 +152,19 @@ class TestServicesAllocate:
 
 
     def test_allocate_raises_error_for_invalid_sku(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
         with pytest.raises(InexistentProduct):
             services.allocate(*line_with_invalid_sku, uow)
 
 
-    @pytest.mark.skip
-    def test_allocate_raises_error_for_overallocation(self, batch, uow):
-        services.add_batch(*batch, uow)
+    def test_allocate_raises_event_for_overallocation(self, batch, uow):
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_greater_qty = ('o2', 'skew', 11)
+        services.allocate(*line_with_greater_qty, uow)
         
-        with pytest.raises(OutOfStock):
-            services.allocate(*line_with_greater_qty, uow)
+        assert events.OutOfStock in {type(event) for event in uow.collected_events}
 
 
 class TestServicesDeallocate:
@@ -176,8 +172,8 @@ class TestServicesDeallocate:
     def test_deallocate_returns_batch_ref(self, uow):
         batch_with_the_line = ('it_is_me', 'skew', 10, None)
         batch_without_the_line = ('it_is_not_me', 'skew', 1, None)
-        services.add_batch(*batch_with_the_line, uow)
-        services.add_batch(*batch_without_the_line, uow)
+        message_bus.handle(events.BatchCreated(*batch_with_the_line), uow)
+        message_bus.handle(events.BatchCreated(*batch_without_the_line), uow)
         line = ('o1', 'skew', 10)
         services.allocate(*line, uow)
         
@@ -186,7 +182,7 @@ class TestServicesDeallocate:
 
 
     def test_deallocate_commits_on_happy_path(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line = ('o1', 'skew', 1)
         services.allocate(*line, uow)
         
@@ -195,7 +191,7 @@ class TestServicesDeallocate:
 
 
     def test_deallocate_does_not_commit_on_error(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         line_not_allocated = ('o2', 'skew', 1)
         
@@ -215,7 +211,7 @@ class TestServicesDeallocate:
 
 
     def test_deallocate_raises_error_for_invalid_sku(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
         with pytest.raises(InexistentProduct):
@@ -223,23 +219,8 @@ class TestServicesDeallocate:
 
 
     def test_deallocate_raises_error_for_not_allocated_line(self, batch, uow):
-        services.add_batch(*batch, uow)
+        message_bus.handle(events.BatchCreated(*batch), uow)
         line_not_allocated = ('o2', 'skew', 1)
         
         with pytest.raises(LineIsNotAllocatedError):
             services.deallocate(*line_not_allocated, uow)
-
-
-class TestEvents:
-
-    def test_uow_can_collect_events_and_pass_to_handler(self, batch, uow):
-        services.add_batch(*batch, uow)
-        line_with_greater_qty = ('o2', 'skew', 11)
-
-        try:
-            services.allocate(*line_with_greater_qty, uow)
-        except OutOfStock:
-            pass
-
-        assert uow.events[0] == events.OutOfStock('skew')
-

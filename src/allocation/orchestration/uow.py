@@ -2,12 +2,10 @@ from abc import ABC, abstractmethod
 from allocation.adapters.repository import (
     DjangoRepository, AbstractRepository)
 from django.db import transaction
-from allocation.orchestration import message_bus
 
 
 class AbstractUnitOfWork(ABC):
     products: AbstractRepository
-    event_handler = staticmethod(message_bus.handle)
 
 
     def __exit__(self, *args):
@@ -20,14 +18,12 @@ class AbstractUnitOfWork(ABC):
 
     def commit(self):
         self._commit()
-        self._publish_events()
 
 
-    def _publish_events(self):
+    def collect_new_events(self):
         for product in self.products.seen:
             while product.events:
-                event = product.events.pop(0)
-                self.event_handler(event)
+                yield product.events.pop(0)
 
 
     @abstractmethod
