@@ -7,7 +7,7 @@ from allocation.orchestration import message_bus
 
 class AbstractProductUnitOfWork(ABC):
     products: AbstractProductRepository
-    event_handler = message_bus.handle
+    event_handler = staticmethod(message_bus.handle)
 
 
     def __exit__(self, *args):
