@@ -176,9 +176,8 @@ class TestServicesDeallocate:
         message_bus.handle(events.BatchCreated(*batch_without_the_line), uow)
         line = ('o1', 'skew', 10)
         message_bus.handle(events.AllocationRequired(*line), uow)
-        
-        batch_ref = services.deallocate(*line, uow)
-        assert batch_ref == batch_with_the_line[0]
+        results = message_bus.handle(events.DeallocationRequired(*line), uow)
+        assert results[0] == batch_with_the_line[0]
 
 
     def test_deallocate_commits_on_happy_path(self, batch, uow):
@@ -186,7 +185,7 @@ class TestServicesDeallocate:
         line = ('o1', 'skew', 1)
         message_bus.handle(events.AllocationRequired(*line), uow)
         
-        services.deallocate(*line, uow)
+        message_bus.handle(events.DeallocationRequired(*line), uow)
         assert uow.commited == True
 
 
@@ -196,14 +195,14 @@ class TestServicesDeallocate:
         line_not_allocated = ('o2', 'skew', 1)
         
         try:
-            services.deallocate(*line_with_invalid_sku, uow)
+            message_bus.handle(events.DeallocationRequired(*line_with_invalid_sku), uow)
         except InexistentProduct:
             pass
         
         assert uow.commited == False
 
         try:
-            services.deallocate(*line_not_allocated, uow)
+            message_bus.handle(events.DeallocationRequired(*line_not_allocated), uow)
         except LineIsNotAllocatedError:
             pass
 
@@ -215,7 +214,7 @@ class TestServicesDeallocate:
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
         with pytest.raises(InexistentProduct):
-            services.deallocate(*line_with_invalid_sku, uow)
+            message_bus.handle(events.DeallocationRequired(*line_with_invalid_sku), uow)
 
 
     def test_deallocate_raises_error_for_not_allocated_line(self, batch, uow):
@@ -223,4 +222,4 @@ class TestServicesDeallocate:
         line_not_allocated = ('o2', 'skew', 1)
         
         with pytest.raises(LineIsNotAllocatedError):
-            services.deallocate(*line_not_allocated, uow)
+            message_bus.handle(events.DeallocationRequired(*line_not_allocated), uow)

@@ -25,3 +25,10 @@ class AllocationRequired(Event):
     order_id: str
     sku: str
     qty: int
+
+
+@dataclass(frozen=True)
+class DeallocationRequired(Event):
+    order_id: str
+    sku: str
+    qty: int

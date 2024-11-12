@@ -20,4 +20,5 @@ HANDLERS: Dict[Type[events.Event], List[Callable]] = {
     events.OutOfStock: [services.log_warning],
     events.BatchCreated: [services.add_batch],
     events.AllocationRequired: [services.allocate],
+    events.DeallocationRequired: [services.deallocate],
 }

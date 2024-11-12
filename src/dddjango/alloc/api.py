@@ -48,9 +48,11 @@ def deallocate(request, payload: OrderLineIn):
     uow = DjangoProductUoW()
     line = payload.dict()
     try:
-        batch_ref = services.deallocate(
-            line['order_id'], line['sku'], line['qty'], uow
+        results = message_bus.handle(
+            events.DeallocationRequired(line['order_id'], line['sku'], line['qty']),
+            uow
         )
+        batch_ref = results[-1]
     except InexistentProduct:
         return 400, {'message': 'InexistentProduct'}
     except LineIsNotAllocatedError:

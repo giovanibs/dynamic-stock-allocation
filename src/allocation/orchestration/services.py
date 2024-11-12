@@ -15,10 +15,10 @@ def allocate(line: events.AllocationRequired, uow: AbstractUnitOfWork):
     return batch_ref
 
 
-def deallocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+def deallocate(line: events.DeallocationRequired, uow: AbstractUnitOfWork):
     with uow:
-        product = uow.products.get(sku)
-        batch_ref = product.deallocate(order_id, sku, qty)
+        product = uow.products.get(line.sku)
+        batch_ref = product.deallocate(line.order_id, line.sku, line.qty)
         uow.products.update(product)
         uow.commit()
     return batch_ref
