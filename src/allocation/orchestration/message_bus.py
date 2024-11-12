@@ -1,10 +1,9 @@
 from typing import Callable, Dict, List, Type
 from allocation.domain import events
-from allocation.orchestration import services
-from allocation.orchestration.uow import AbstractUnitOfWork
+from allocation.orchestration import handlers, uow
 
 
-def handle(event: events.Event, uow: AbstractUnitOfWork):
+def handle(event: events.Event, uow: uow.AbstractUnitOfWork):
     queue = [event]
     results = []
     while queue:
@@ -17,8 +16,8 @@ def handle(event: events.Event, uow: AbstractUnitOfWork):
 
 
 HANDLERS: Dict[Type[events.Event], List[Callable]] = {
-    events.OutOfStock: [services.log_warning],
-    events.BatchCreated: [services.add_batch],
-    events.AllocationRequired: [services.allocate],
-    events.DeallocationRequired: [services.deallocate],
+    events.OutOfStock: [handlers.log_warning],
+    events.BatchCreated: [handlers.add_batch],
+    events.AllocationRequired: [handlers.allocate],
+    events.DeallocationRequired: [handlers.deallocate],
 }
