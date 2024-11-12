@@ -2,10 +2,10 @@ from datetime import date
 from typing import Optional
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InexistentProduct, ProductAlreadyExists
-from allocation.orchestration.uow import AbstractProductUnitOfWork
+from allocation.orchestration.uow import AbstractUnitOfWork
 
 
-def allocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
+def allocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(sku)
         batch_reference = product.allocate(order_id, sku, qty)
@@ -14,7 +14,7 @@ def allocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
     return batch_reference
 
 
-def deallocate(order_id: str, sku: str, qty: int, uow: AbstractProductUnitOfWork):
+def deallocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(sku)
         batch_reference = product.deallocate(order_id, sku, qty)
@@ -27,7 +27,7 @@ def add_batch(reference: str,
               sku: str,
               purchased_qty: int,
               eta: Optional[date],
-              uow: AbstractProductUnitOfWork
+              uow: AbstractUnitOfWork
 ) -> None:
     batch = (reference, sku, purchased_qty, eta)
     with uow:
@@ -39,7 +39,7 @@ def add_batch(reference: str,
         uow.commit()
 
 
-def add_product(sku: str, uow: AbstractProductUnitOfWork) -> None:
+def add_product(sku: str, uow: AbstractUnitOfWork) -> None:
     with uow:
         try:
             uow.products.get(sku=sku)

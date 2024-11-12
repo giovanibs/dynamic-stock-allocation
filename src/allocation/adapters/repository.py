@@ -5,7 +5,7 @@ from allocation.domain.exceptions import InexistentProduct
 from dddjango.alloc import models as django_models
 
 
-class AbstractProductRepository(ABC):
+class AbstractRepository(ABC):
 
     def __init__(self) -> None:
         self._seen: Set[domain_models.Product] = set()
@@ -42,7 +42,7 @@ class AbstractProductRepository(ABC):
         raise NotImplementedError()
     
 
-class DjangoProductRepository(AbstractProductRepository):
+class DjangoRepository(AbstractRepository):
 
     def add(self, product: domain_models.Product) -> None:
         super().add(product)

@@ -1,4 +1,4 @@
-from allocation.adapters.repository import DjangoProductRepository
+from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InexistentProduct
 from dddjango.alloc import models as django_models
@@ -34,7 +34,7 @@ def domain_product(domain_batch):
 
 @pytest.fixture
 def repo():
-    return DjangoProductRepository()
+    return DjangoRepository()
 
 
 @pytest.mark.django_db

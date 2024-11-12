@@ -1,16 +1,16 @@
 from typing import List, Optional
 import pytest
-from allocation.adapters.repository import AbstractProductRepository
+from allocation.adapters.repository import AbstractRepository
 from allocation.domain import events
 from allocation.domain.exceptions import (
     InexistentProduct, LineIsNotAllocatedError, OutOfStock, ProductAlreadyExists)
 from allocation.orchestration import services
 from allocation.domain.model import Product
-from allocation.orchestration.uow import AbstractProductUnitOfWork
+from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
 
 
-class FakeProductRepository(AbstractProductRepository):
+class FakeProductRepository(AbstractRepository):
 
         def __init__(self, products: Optional[List[Product]] = None) -> None:
             super().__init__()
@@ -46,9 +46,9 @@ class FakeProductRepository(AbstractProductRepository):
             return list(self._products)
 
 
-class FakeProductUoW(AbstractProductUnitOfWork):
+class FakeProductUoW(AbstractUnitOfWork):
 
-        def __init__(self, repo: AbstractProductRepository) -> None:
+        def __init__(self, repo: AbstractRepository) -> None:
             self._products = repo
             self._commited = False
             self.events = []
@@ -60,11 +60,11 @@ class FakeProductUoW(AbstractProductUnitOfWork):
         
 
         @property
-        def products(self) -> AbstractProductRepository:
+        def products(self) -> AbstractRepository:
             return self._products
         
 
-        def __enter__(self) -> AbstractProductUnitOfWork:
+        def __enter__(self) -> AbstractUnitOfWork:
             self._commited = False
             return super().__enter__()
         

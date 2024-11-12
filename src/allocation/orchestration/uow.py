@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from allocation.adapters.repository import (
-    DjangoProductRepository, AbstractProductRepository)
+    DjangoRepository, AbstractRepository)
 from django.db import transaction
 from allocation.orchestration import message_bus
 
 
-class AbstractProductUnitOfWork(ABC):
-    products: AbstractProductRepository
+class AbstractUnitOfWork(ABC):
+    products: AbstractRepository
     event_handler = staticmethod(message_bus.handle)
 
 
@@ -40,10 +40,10 @@ class AbstractProductUnitOfWork(ABC):
         raise NotImplementedError()
 
 
-class DjangoProductUoW(AbstractProductUnitOfWork):
+class DjangoProductUoW(AbstractUnitOfWork):
 
     def __enter__(self):
-        self._products = DjangoProductRepository()
+        self._products = DjangoRepository()
         transaction.set_autocommit(False)
         return super().__enter__()
     
