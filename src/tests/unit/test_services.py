@@ -17,12 +17,12 @@ class FakeProductRepository(AbstractProductRepository):
 
 
         def get(self, sku) -> Product:
-            product = self._get_django_model(sku)
+            product = self._get(sku)
             self._seen.add(product)
             return product
 
 
-        def _get_django_model(self, sku: str) -> Product:
+        def _get(self, sku: str) -> Product:
             try:
                 return next(product
                             for product in self._products

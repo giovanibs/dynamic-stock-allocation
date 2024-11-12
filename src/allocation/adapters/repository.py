@@ -22,13 +22,13 @@ class AbstractProductRepository(ABC):
 
 
     def get(self, sku) -> domain_models.Product:
-        product = self._get_django_model(sku).to_domain()
+        product = self._get(sku)
         self._seen.add(product)
         return product
     
 
     @abstractmethod
-    def _get_django_model(self, sku) -> django_models.Product:
+    def _get(self, sku) -> domain_models.Product:
         raise NotImplementedError()
     
 
@@ -72,16 +72,16 @@ class DjangoProductRepository(AbstractProductRepository):
                 )
 
 
-    def _get_django_model(self, sku) -> django_models.Product:
+    def _get(self, sku) -> domain_models.Product:
         try:
-            return django_models.Product.objects.get(sku=sku)
+            return django_models.Product.objects.get(sku=sku).to_domain()
         except django_models.Product.DoesNotExist:
             raise InexistentProduct
 
 
     def update(self, updated_product: domain_models.Product) -> None:
         # not using `get` here to prevent triggering update on uow commit
-        current_domain_product = self._get_django_model(updated_product.sku).to_domain()
+        current_domain_product = self._get(updated_product.sku)
         
         self._delete_removed_allocations_from_updated_product(
             updated_product.batches,
@@ -132,11 +132,15 @@ class DjangoProductRepository(AbstractProductRepository):
     ):
         current_batches_ref = {b.reference for b in current_batches}
         updated_batches_ref = {b.reference for b in updated_batches}
+        new_batches_ref = updated_batches_ref - current_batches_ref
         
-        for batch_ref in updated_batches_ref - current_batches_ref:
+        if new_batches_ref:
+            django_product = django_models.Product.objects.get(sku=updated_batches[0].sku)
+        
+        for batch_ref in new_batches_ref:
             self._add_batches(
                 [self._get_batch_by_ref(updated_batches, batch_ref)],
-                self._get_django_model(updated_batches[0].sku)
+                django_product
             )
 
 
