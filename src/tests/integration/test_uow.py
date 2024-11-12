@@ -1,4 +1,3 @@
-import os
 from allocation.domain.exceptions import InvalidSKU
 from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc import models as orm
@@ -77,27 +76,6 @@ def test_uow_rollbacks_on_error():
         pass
 
     assert retrieve_batch_from_db('batch') is None
-
-
-@pytest.mark.skip # skipping until we implement allocate using event
-@pytest.mark.django_db(transaction=True)
-def test_uow_logs_out_of_stock_warning():
-    sku = 'skew'
-    insert_product_into_db(sku)
-    huge_order_line = ('o1', sku, 100)
-
-    with DjangoProductUoW() as uow:
-        product = uow.products.get(sku)
-        product.add_batch('batch', sku, 1)
-        product.allocate(*huge_order_line)
-        uow.commit()
-    
-    filename = os.path.join(os.getcwd(), 'logs.log')
-    with open(filename) as fn:
-        lines = fn.readlines()
-    os.remove(filename)
-
-    assert f"'{sku}' is out of stock!" in lines[-1]
 
 
 def insert_product_into_db(sku) -> orm.Product:

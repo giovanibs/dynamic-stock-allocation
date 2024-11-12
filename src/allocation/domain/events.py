@@ -18,3 +18,10 @@ class BatchCreated(Event):
     sku: str
     qty: int
     eta: Optional[date] = None
+
+
+@dataclass(frozen=True)
+class AllocationRequired(Event):
+    order_id: str
+    sku: str
+    qty: int

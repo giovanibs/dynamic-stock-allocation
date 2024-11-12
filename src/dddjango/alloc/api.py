@@ -28,11 +28,15 @@ def allocate(request, payload: OrderLineIn):
     uow = DjangoProductUoW()
     line = payload.dict()
     try:
-        batch_ref = services.allocate(
-            line['order_id'], line['sku'], line['qty'], uow
+        results = message_bus.handle(
+            events.AllocationRequired(line['order_id'], line['sku'], line['qty']),
+            uow
         )
-    except OutOfStock:
-        return 400, {'message': 'OutOfStock'}
+        if 'OutOfStock' in results:
+            return 400, {'message': 'OutOfStock'}
+        
+        batch_ref = results[-1]
+
     except InexistentProduct:
         return 400, {'message': 'InexistentProduct'}
         

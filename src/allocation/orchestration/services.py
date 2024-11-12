@@ -6,10 +6,10 @@ from allocation.domain.exceptions import InexistentProduct
 from allocation.orchestration.uow import AbstractUnitOfWork
 
 
-def allocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
+def allocate(line: events.AllocationRequired, uow: AbstractUnitOfWork):
     with uow:
-        product = uow.products.get(sku)
-        batch_ref = product.allocate(order_id, sku, qty)
+        product = uow.products.get(line.sku)
+        batch_ref = product.allocate(line.order_id, line.sku, line.qty)
         uow.products.update(product)
         uow.commit()
     return batch_ref
@@ -24,15 +24,15 @@ def deallocate(order_id: str, sku: str, qty: int, uow: AbstractUnitOfWork):
     return batch_ref
 
 
-def add_batch(new_batch: events.BatchCreated, uow: AbstractUnitOfWork) -> None:
+def add_batch(batch: events.BatchCreated, uow: AbstractUnitOfWork) -> None:
     
     with uow:
         try:
-            uow.products.get(sku=new_batch.sku).add_batch(*astuple(new_batch))
+            uow.products.get(sku=batch.sku).add_batch(*astuple(batch))
         
         except InexistentProduct:
             uow.products.add(
-                domain_.Product(new_batch.sku, [domain_.Batch(*astuple(new_batch))])
+                domain_.Product(batch.sku, [domain_.Batch(*astuple(batch))])
             )
         uow.commit()
 
@@ -48,3 +48,5 @@ def log_warning(event: events.OutOfStock, uow: AbstractUnitOfWork):
     logger.addHandler(file_handler)
     logger.setLevel(logging.DEBUG)
     logger.warning(f"'{event.sku}' is out of stock!")
+
+    return 'OutOfStock' # for returning error msg
