@@ -2,7 +2,7 @@ import os
 from allocation.domain.exceptions import InvalidSKU
 from allocation.orchestration.uow import DjangoProductUoW
 from dddjango.alloc import models as orm
-from allocation.domain import model as domain_models
+from allocation.domain import model as domain_
 import pytest
 
 
@@ -53,7 +53,7 @@ def test_uow_can_deallocate_a_line():
 @pytest.mark.django_db(transaction=True)
 def test_uow_does_not_commit_implicitly():
     uow = DjangoProductUoW()
-    product = domain_models.Product('skew')
+    product = domain_.Product('skew')
     with uow:
         uow.products.add(product)
 
@@ -103,7 +103,7 @@ def insert_product_into_db(sku) -> orm.Product:
     return orm.Product.objects.create(sku=sku)
 
 
-def retrieve_batch_from_db(ref) -> domain_models.Batch | None:
+def retrieve_batch_from_db(ref) -> domain_.Batch | None:
     try:
         return orm.Batch.objects.get(ref=ref).to_domain()
     except orm.Batch.DoesNotExist:

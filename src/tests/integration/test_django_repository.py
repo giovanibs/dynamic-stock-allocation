@@ -1,5 +1,5 @@
 from allocation.adapters.repository import DjangoRepository
-from allocation.domain import model as domain_models
+from allocation.domain import model as domain_
 from allocation.domain.exceptions import InexistentProduct
 from dddjango.alloc import models as orm
 import pytest
@@ -8,15 +8,15 @@ import pytest
 @pytest.fixture
 def lines():
     return [
-        domain_models.OrderLine('order1', 'skew', 1),
-        domain_models.OrderLine('order2', 'skew', 2),
-        domain_models.OrderLine('order3', 'skew', 3),
+        domain_.OrderLine('order1', 'skew', 1),
+        domain_.OrderLine('order2', 'skew', 2),
+        domain_.OrderLine('order3', 'skew', 3),
     ]
 
 
 @pytest.fixture
 def domain_batch(lines, today):
-    batch = domain_models.Batch('batch', 'skew', 10, eta=today)
+    batch = domain_.Batch('batch', 'skew', 10, eta=today)
     line1 = lines[0]
     line2 = lines[1]
     line3 = lines[2]
@@ -29,7 +29,7 @@ def domain_batch(lines, today):
 
 @pytest.fixture
 def domain_product(domain_batch):
-    return domain_models.Product(domain_batch.sku, [domain_batch])
+    return domain_.Product(domain_batch.sku, [domain_batch])
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def test_cannot_retrieve_an_inexistent_product(repo):
 
 @pytest.mark.django_db
 def test_can_update_product_after_adding_batch(repo):
-    product = domain_models.Product('sku', [domain_models.Batch('batch', 'sku', 10)])
+    product = domain_.Product('sku', [domain_.Batch('batch', 'sku', 10)])
     repo.add(product)
     product.add_batch('other_batch', 'sku', 10)
     repo.update(product)
@@ -96,9 +96,9 @@ def test_can_update_product_after_deallocating_a_line(repo, domain_batch, domain
 
 @pytest.mark.django_db
 def test_can_return_list_of_products(repo):
-    repo.add(domain_models.Product('sku1'))
-    repo.add(domain_models.Product('sku2'))
-    repo.add(domain_models.Product('sku3'))
+    repo.add(domain_.Product('sku1'))
+    repo.add(domain_.Product('sku2'))
+    repo.add(domain_.Product('sku3'))
     products = repo.list()
 
     assert {'sku1', 'sku2', 'sku3'} == {p.sku for p in products}

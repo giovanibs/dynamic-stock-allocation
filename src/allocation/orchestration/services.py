@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Optional
-from allocation.domain import model as domain_models
+from allocation.domain import model as domain_
 from allocation.domain.exceptions import InexistentProduct, ProductAlreadyExists
 from allocation.orchestration.uow import AbstractUnitOfWork
 
@@ -34,7 +34,7 @@ def add_batch(ref: str,
         try:
             uow.products.get(sku=sku).add_batch(*batch)
         except InexistentProduct:
-            uow.products.add(domain_models.Product(sku, [domain_models.Batch(*batch)]))
+            uow.products.add(domain_.Product(sku, [domain_.Batch(*batch)]))
         
         uow.commit()
 
@@ -45,6 +45,6 @@ def add_product(sku: str, uow: AbstractUnitOfWork) -> None:
             uow.products.get(sku=sku)
             raise ProductAlreadyExists()
         except InexistentProduct:
-            uow.products.add(domain_models.Product(sku))
+            uow.products.add(domain_.Product(sku))
         
         uow.commit()
