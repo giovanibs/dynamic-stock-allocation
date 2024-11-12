@@ -1,7 +1,7 @@
 from allocation.adapters.repository import DjangoRepository
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InexistentProduct
-from dddjango.alloc import models as django_models
+from dddjango.alloc import models as orm
 import pytest
 
 
@@ -40,19 +40,19 @@ def repo():
 @pytest.mark.django_db
 def test_can_create_a_product(lines, domain_product, repo):
     repo.add(domain_product)
-    django_product = django_models.Product.objects.get(sku=domain_product.sku).to_domain()
+    orm_product = orm.Product.objects.get(sku=domain_product.sku).to_domain()
     
-    assert django_product.sku == domain_product.sku
-    assert django_product.batches[0].ref == domain_product.batches[0].ref
+    assert orm_product.sku == domain_product.sku
+    assert orm_product.batches[0].ref == domain_product.batches[0].ref
     
     for line in lines:
-        assert line in django_product.batches[0].allocations
+        assert line in orm_product.batches[0].allocations
 
 
 @pytest.mark.django_db
 def test_can_retrieve_a_product(repo):
-    django_models.Product.objects.create(sku='skew')
-    django_models.Product.objects.create(sku='sku')
+    orm.Product.objects.create(sku='skew')
+    orm.Product.objects.create(sku='sku')
     product = repo.get('sku')
     assert product.sku == 'sku'
 

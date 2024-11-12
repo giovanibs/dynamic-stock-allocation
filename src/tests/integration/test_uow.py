@@ -1,7 +1,7 @@
 import os
 from allocation.domain.exceptions import InvalidSKU
 from allocation.orchestration.uow import DjangoProductUoW
-from dddjango.alloc import models as django_models
+from dddjango.alloc import models as orm
 from allocation.domain import model as domain_models
 import pytest
 
@@ -57,8 +57,8 @@ def test_uow_does_not_commit_implicitly():
     with uow:
         uow.products.add(product)
 
-    with pytest.raises(django_models.Product.DoesNotExist):
-        django_models.Product.objects.get(sku=product.sku)
+    with pytest.raises(orm.Product.DoesNotExist):
+        orm.Product.objects.get(sku=product.sku)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -99,19 +99,19 @@ def test_uow_logs_out_of_stock_warning():
     assert f"'{sku}' is out of stock!" in lines[-1]
 
 
-def insert_product_into_db(sku) -> django_models.Product:
-    return django_models.Product.objects.create(sku=sku)
+def insert_product_into_db(sku) -> orm.Product:
+    return orm.Product.objects.create(sku=sku)
 
 
 def retrieve_batch_from_db(ref) -> domain_models.Batch | None:
     try:
-        return django_models.Batch.objects.get(ref=ref).to_domain()
-    except django_models.Batch.DoesNotExist:
+        return orm.Batch.objects.get(ref=ref).to_domain()
+    except orm.Batch.DoesNotExist:
         return None
     
 
-def insert_batch_into_db(ref, product, qty, eta=None) -> django_models.Batch:
-    return django_models.Batch.objects.create(
+def insert_batch_into_db(ref, product, qty, eta=None) -> orm.Batch:
+    return orm.Batch.objects.create(
         ref=ref,
         product=product,
         qty=qty,
@@ -119,8 +119,8 @@ def insert_batch_into_db(ref, product, qty, eta=None) -> django_models.Batch:
     )
 
 
-def insert_allocation_into_db(batch, order_id, sku, qty) -> django_models.Allocation:
-    return django_models.Allocation.objects.create(
+def insert_allocation_into_db(batch, order_id, sku, qty) -> orm.Allocation:
+    return orm.Allocation.objects.create(
         batch=batch,
         order_id=order_id,
         sku=sku,

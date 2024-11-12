@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Set
 from allocation.domain import model as domain_models
 from allocation.domain.exceptions import InexistentProduct
-from dddjango.alloc import models as django_models
+from dddjango.alloc import models as orm
 
 
 class AbstractRepository(ABC):
@@ -46,26 +46,26 @@ class DjangoRepository(AbstractRepository):
 
     def add(self, product: domain_models.Product) -> None:
         super().add(product)
-        django_product = django_models.Product.objects.create(sku=product.sku)
-        self._add_batches(product.batches, django_product)
+        orm_product = orm.Product.objects.create(sku=product.sku)
+        self._add_batches(product.batches, orm_product)
 
     
-    def _add_batches(self, batches, django_product):
+    def _add_batches(self, batches, orm_product):
         for batch in batches:
-            django_batch = django_models.Batch.objects.create(
+            orm_batch = orm.Batch.objects.create(
                 ref=batch.ref,
-                product=django_product,
+                product=orm_product,
                 qty=batch.available_qty + batch.allocated_qty,
                 eta=batch.eta,
             )
-            self._add_lines(batch.allocations, django_batch)
+            self._add_lines(batch.allocations, orm_batch)
 
     
     @staticmethod
-    def _add_lines(allocations, django_batch):
+    def _add_lines(allocations, orm_batch):
         for line in allocations:
-            django_models.Allocation.objects.create(
-                    batch = django_batch,
+            orm.Allocation.objects.create(
+                    batch = orm_batch,
                     order_id=line.order_id,
                     sku=line.sku,
                     qty=line.qty,
@@ -74,8 +74,8 @@ class DjangoRepository(AbstractRepository):
 
     def _get(self, sku) -> domain_models.Product:
         try:
-            return django_models.Product.objects.get(sku=sku).to_domain()
-        except django_models.Product.DoesNotExist:
+            return orm.Product.objects.get(sku=sku).to_domain()
+        except orm.Product.DoesNotExist:
             raise InexistentProduct
 
 
@@ -104,11 +104,11 @@ class DjangoRepository(AbstractRepository):
     ):
         for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
-            django_batch = django_models.Batch.objects.get(ref=batch.ref)
+            orm_batch = orm.Batch.objects.get(ref=batch.ref)
             removed_lines_order_id = {l.order_id for l in batch.allocations
                                       if l not in updated_batch.allocations}
             
-            for line in django_batch.allocations.all():
+            for line in orm_batch.allocations.all():
                 if line.order_id in removed_lines_order_id:
                     line.delete()
     
@@ -120,9 +120,9 @@ class DjangoRepository(AbstractRepository):
     ):
         for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
-            django_batch = django_models.Batch.objects.get(ref=batch.ref)
+            orm_batch = orm.Batch.objects.get(ref=batch.ref)
             new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}
-            self._add_lines(new_lines, django_batch)
+            self._add_lines(new_lines, orm_batch)
 
 
     def _add_new_batches(
@@ -135,12 +135,12 @@ class DjangoRepository(AbstractRepository):
         new_batches_ref = updated_batches_ref - current_batches_ref
         
         if new_batches_ref:
-            django_product = django_models.Product.objects.get(sku=updated_batches[0].sku)
+            orm_product = orm.Product.objects.get(sku=updated_batches[0].sku)
         
         for batch_ref in new_batches_ref:
             self._add_batches(
                 [self._get_batch_by_ref(updated_batches, batch_ref)],
-                django_product
+                orm_product
             )
 
 
@@ -150,4 +150,4 @@ class DjangoRepository(AbstractRepository):
 
     
     def list(self) -> List[domain_models.Product]:
-        return [p.to_domain() for p in django_models.Product.objects.all()]
+        return [p.to_domain() for p in orm.Product.objects.all()]
