@@ -38,18 +38,18 @@ def test_add_duplicated_product_returns_400_error(base_url, client):
 
 @pytest.mark.django_db(transaction=True)
 def test_can_retrieve_batch_info(base_url, client):
-    batch = {'reference': 'ref', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
+    batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
     post_to_create_product('skew')
     post_to_create_batch(*batch.values())
     
-    response = client.get(base_url + 'batches/' + batch['reference'])
+    response = client.get(base_url + 'batches/' + batch['ref'])
     resp_batch = response.json()
     
     assert response.status_code == 200
-    assert resp_batch['reference'] == batch['reference']
+    assert resp_batch['ref'] == batch['ref']
     assert resp_batch['sku'] == batch['sku']
     assert resp_batch['allocated_qty'] == 0
-    assert resp_batch['available_qty'] == batch['purchased_qty']
+    assert resp_batch['available_qty'] == batch['qty']
     assert resp_batch['eta'] == batch['eta']
 
 
@@ -70,7 +70,7 @@ def test_api_returns_batch_ref_on_allocation(today, tomorrow, later, base_url, c
         content_type = "application/json"
     )
     assert response.status_code == 201
-    assert response.json()['batch_reference'] == earliest_batch[0]
+    assert response.json()['batch_ref'] == earliest_batch[0]
 
 
 @pytest.mark.skip
@@ -114,7 +114,7 @@ def test_api_returns_batch_ref_on_deallocation(base_url, client):
         content_type = "application/json"
     )
     assert response.status_code == 200
-    assert response.json()['batch_reference'] == batch[0]
+    assert response.json()['batch_ref'] == batch[0]
 
 
 @pytest.mark.django_db(transaction=True)
@@ -147,14 +147,14 @@ def test_deallocate_400_message_for_line_not_allocated(base_url, client):
 @pytest.mark.django_db(transaction=True)
 def test_add_batch(base_url, client):
     post_to_create_product('skew')
-    batch = {'reference': 'batch', 'sku': 'skew', 'purchased_qty': 10, 'eta': None}
+    batch = {'ref': 'batch', 'sku': 'skew', 'qty': 10, 'eta': None}
     response = client.post(
         base_url + 'batches', data=batch, content_type="application/json"
     )
     assert response.status_code == 201
-    assert response.json()['reference'] == batch['reference']
+    assert response.json()['ref'] == batch['ref']
     assert response.json()['sku'] == batch['sku']
-    assert response.json()['available_qty'] == batch['purchased_qty']
+    assert response.json()['available_qty'] == batch['qty']
     assert response.json()['eta'] == batch['eta']
 
 
@@ -170,7 +170,7 @@ def post_to_create_product(sku: str):
 def post_to_create_batch(ref: str, sku: str, qty: int, eta: Optional[date]=None):
     response = Client().post(
         path = '/api/batches',
-        data = {'reference': ref,'sku': sku,'purchased_qty': qty,'eta': eta},
+        data = {'ref': ref,'sku': sku,'qty': qty,'eta': eta},
         content_type = "application/json"
     )
     assert response.status_code == 201

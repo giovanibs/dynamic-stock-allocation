@@ -16,7 +16,7 @@ def test_uow_can_retrieve_a_product_and_add_a_batch():
         product.add_batch('batch', 'skew', 10)
         uow.commit()
 
-    assert retrieve_batch_from_db('batch').reference == 'batch'
+    assert retrieve_batch_from_db('batch').ref == 'batch'
 
 
 @pytest.mark.django_db(transaction=True)
@@ -103,18 +103,18 @@ def insert_product_into_db(sku) -> django_models.Product:
     return django_models.Product.objects.create(sku=sku)
 
 
-def retrieve_batch_from_db(reference) -> domain_models.Batch | None:
+def retrieve_batch_from_db(ref) -> domain_models.Batch | None:
     try:
-        return django_models.Batch.objects.get(reference=reference).to_domain()
+        return django_models.Batch.objects.get(ref=ref).to_domain()
     except django_models.Batch.DoesNotExist:
         return None
     
 
-def insert_batch_into_db(reference, product, purchased_qty, eta=None) -> django_models.Batch:
+def insert_batch_into_db(ref, product, qty, eta=None) -> django_models.Batch:
     return django_models.Batch.objects.create(
-        reference=reference,
+        ref=ref,
         product=product,
-        purchased_qty=purchased_qty,
+        qty=qty,
         eta=eta
     )
 

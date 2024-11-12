@@ -4,14 +4,14 @@ from ninja import Schema
 
 
 class BatchIn(Schema):
-    reference: str
+    ref: str
     sku: str
-    purchased_qty: int
+    qty: int
     eta: Optional[date] = None
 
 
 class BatchOut(Schema):
-    reference: str
+    ref: str
     sku: str
     allocated_qty: int
     available_qty: int
@@ -25,7 +25,7 @@ class OrderLineIn(Schema):
 
 
 class BatchRef(Schema):
-    batch_reference: str
+    batch_ref: str
 
 
 class Message(Schema):

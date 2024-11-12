@@ -40,19 +40,19 @@ def test_allocation_returns_allocated_batch_ref(today, tomorrow, later):
     product = Product(sku, [earliest_batch, in_between_batch, latest_batch])
     batch_ref = product.allocate(*line)
 
-    assert batch_ref == earliest_batch.reference
+    assert batch_ref == earliest_batch.ref
 
 
-def test_deallocate_returns_batch_reference():
+def test_deallocate_returns_batch_ref():
     sku = 'skew'
     batch_with_the_line = Batch('it_is_me', sku, 10)
     batch_without_the_line = Batch('it_is_not_me', sku, 10)
     line = ('o1', sku, 1)
     batch_with_the_line.allocate(OrderLine(*line))
     product = Product(sku, [batch_with_the_line, batch_without_the_line])
-    batch_reference = product.deallocate(*line)
+    batch_ref = product.deallocate(*line)
 
-    assert batch_reference == batch_with_the_line.reference
+    assert batch_ref == batch_with_the_line.ref
 
 
 def test_deallocate_raises_error_for_invalid_sku():
@@ -79,7 +79,7 @@ def test_can_add_valid_batch():
     product = Product('sku')
     batch = ('batch', 'sku', 10)
     product.add_batch(*batch)
-    assert 'batch' in {b.reference for b in product.batches}
+    assert 'batch' in {b.ref for b in product.batches}
 
 
 def test_cannot_add_batch_with_different_sku():
@@ -94,8 +94,8 @@ def test_can_instantiate_product_with_batches():
     batch = Batch('batch', 'skew', 10)
     other_batch = Batch('other_batch', 'skew', 10)
     product = Product('skew', [batch, other_batch])
-    assert batch.reference in {b.reference for b in product.batches}
-    assert other_batch.reference in {b.reference for b in product.batches}
+    assert batch.ref in {b.ref for b in product.batches}
+    assert other_batch.ref in {b.ref for b in product.batches}
 
 
 def test_cannot_instantiate_product_with_invalid_batch():

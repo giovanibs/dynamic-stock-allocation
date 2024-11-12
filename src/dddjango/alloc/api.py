@@ -32,7 +32,7 @@ def get_batch_by_ref(request, batch_ref: str):
     with DjangoProductUoW() as uow:
         products = uow.products.list()
         batches = {b for p in products for b in p.batches}
-        batch = next(batch for batch in batches if batch.reference == batch_ref)
+        batch = next(batch for batch in batches if batch.ref == batch_ref)
 
     return 200, batch
 
@@ -50,7 +50,7 @@ def allocate(request, payload: OrderLineIn):
     except InexistentProduct:
         return 400, {'message': 'InexistentProduct'}
         
-    return 201, {'batch_reference': batch_ref}
+    return 201, {'batch_ref': batch_ref}
 
 
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
@@ -66,7 +66,7 @@ def deallocate(request, payload: OrderLineIn):
     except LineIsNotAllocatedError:
         return 400, {'message': 'LineIsNotAllocatedError'}
         
-    return 200, {'batch_reference': batch_ref}
+    return 200, {'batch_ref': batch_ref}
 
 
 @api.post('batches', response={201: BatchOut})
@@ -76,7 +76,7 @@ def add_batch(request, payload: BatchIn):
     services.add_batch(*batch.values(), uow)
     added_batch = next(
         b for b in uow.products.get(batch['sku']).batches
-        if b.reference == batch['reference']
+        if b.ref == batch['ref']
     )
 
     return 201, added_batch

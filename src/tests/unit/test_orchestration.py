@@ -100,7 +100,7 @@ class TestServicesAdd:
     def test_add_batch(self, batch, uow):
         services.add_batch(*batch, uow)
         product = uow.products.get(batch[1])
-        assert batch[0] in {b.reference for b in product.batches}
+        assert batch[0] in {b.ref for b in product.batches}
 
 
     def test_add_batch_commits_on_happy_path(self, batch, uow):
@@ -152,15 +152,15 @@ class TestServicesAllocate:
         assert uow.commited == False
 
 
-    def test_allocate_returns_batch_reference(self, today, later, uow):
+    def test_allocate_returns_batch_ref(self, today, later, uow):
         earlier_batch = ('earlier', 'skew', 10, today)
         later_batch = ('earlier', 'skew', 10, later)
         services.add_batch(*earlier_batch, uow)
         services.add_batch(*later_batch, uow)
         line = ('o1', 'skew', 1)
         
-        batch_reference = services.allocate(*line, uow)
-        assert batch_reference == earlier_batch[0]
+        batch_ref = services.allocate(*line, uow)
+        assert batch_ref == earlier_batch[0]
 
 
     def test_allocate_raises_error_for_invalid_sku(self, batch, uow):
@@ -182,7 +182,7 @@ class TestServicesAllocate:
 
 class TestServicesDeallocate:
 
-    def test_deallocate_returns_batch_reference(self, uow):
+    def test_deallocate_returns_batch_ref(self, uow):
         batch_with_the_line = ('it_is_me', 'skew', 10, None)
         batch_without_the_line = ('it_is_not_me', 'skew', 1, None)
         services.add_batch(*batch_with_the_line, uow)
@@ -190,8 +190,8 @@ class TestServicesDeallocate:
         line = ('o1', 'skew', 10)
         services.allocate(*line, uow)
         
-        batch_reference = services.deallocate(*line, uow)
-        assert batch_reference == batch_with_the_line[0]
+        batch_ref = services.deallocate(*line, uow)
+        assert batch_ref == batch_with_the_line[0]
 
 
     def test_deallocate_commits_on_happy_path(self, batch, uow):

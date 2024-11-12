@@ -26,8 +26,8 @@ class InvalidSKU(Exception):
 
 
 class BatchDoesNotExist(Exception):
-    """Error raised when trying to get a batch by reference, but there is none"
-    by that reference."""
+    """Error raised when trying to get a batch by ref, but there is none"
+    by that ref."""
 
 
 class InexistentProduct(Exception):

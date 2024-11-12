@@ -15,11 +15,11 @@ class OrderLine:
 
 class Batch:
 
-    def __init__(self, reference: str, sku: str, purchased_qty: int,
+    def __init__(self, ref: str, sku: str, qty: int,
                  eta: Optional[date] = None ) -> None:
-        self.reference = reference
+        self.ref = ref
         self.sku = sku
-        self._purchased_qty = purchased_qty
+        self._qty = qty
         self.eta = eta
         self._allocations: Set[OrderLine] = set()
 
@@ -41,15 +41,15 @@ class Batch:
 
     @property
     def available_qty(self):
-        return self._purchased_qty - self.allocated_qty
+        return self._qty - self.allocated_qty
     
 
     @property
     def properties_dict(self):
         return {
-        'reference': self.reference,
+        'ref': self.ref,
         'sku': self.sku,
-        'purchased_qty': self._purchased_qty,
+        'qty': self._qty,
         'eta': self.eta,
         }
 
@@ -117,11 +117,11 @@ class Product:
         return self._events
     
 
-    def add_batch(self, reference: str, sku: str, purchased_qty: int,
+    def add_batch(self, ref: str, sku: str, qty: int,
                   eta: Optional[date] = None
     ):
         self.validate_sku(sku)
-        self._batches.append(Batch(reference, sku, purchased_qty, eta))
+        self._batches.append(Batch(ref, sku, qty, eta))
 
 
     def allocate(self, order_id: str, sku: str, qty: int) -> str:
@@ -136,7 +136,7 @@ class Product:
             return None
         
         batch.allocate(line)
-        return batch.reference
+        return batch.ref
 
 
     def _get_suitable_batch_or_raise_error(self, line):
@@ -154,7 +154,7 @@ class Product:
         line = OrderLine(order_id, sku, qty)
         batch = self._get_batch_with_allocated_line_or_raise_error(line)
         batch.deallocate(line)
-        return batch.reference
+        return batch.ref
 
 
     def _get_batch_with_allocated_line_or_raise_error(self, line: OrderLine):

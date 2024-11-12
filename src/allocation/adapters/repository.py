@@ -53,9 +53,9 @@ class DjangoRepository(AbstractRepository):
     def _add_batches(self, batches, django_product):
         for batch in batches:
             django_batch = django_models.Batch.objects.create(
-                reference=batch.reference,
+                ref=batch.ref,
                 product=django_product,
-                purchased_qty=batch.available_qty + batch.allocated_qty,
+                qty=batch.available_qty + batch.allocated_qty,
                 eta=batch.eta,
             )
             self._add_lines(batch.allocations, django_batch)
@@ -103,8 +103,8 @@ class DjangoRepository(AbstractRepository):
             current_batches: List[domain_models.Batch],
     ):
         for batch in current_batches:
-            updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)
-            django_batch = django_models.Batch.objects.get(reference=batch.reference)
+            updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
+            django_batch = django_models.Batch.objects.get(ref=batch.ref)
             removed_lines_order_id = {l.order_id for l in batch.allocations
                                       if l not in updated_batch.allocations}
             
@@ -119,8 +119,8 @@ class DjangoRepository(AbstractRepository):
             current_batches: List[domain_models.Batch]
     ):
         for batch in current_batches:
-            updated_batch = self._get_batch_by_ref(updated_batches, batch.reference)
-            django_batch = django_models.Batch.objects.get(reference=batch.reference)
+            updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
+            django_batch = django_models.Batch.objects.get(ref=batch.ref)
             new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}
             self._add_lines(new_lines, django_batch)
 
@@ -130,8 +130,8 @@ class DjangoRepository(AbstractRepository):
             updated_batches: List[domain_models.Batch],
             current_batches: List[domain_models.Batch],
     ):
-        current_batches_ref = {b.reference for b in current_batches}
-        updated_batches_ref = {b.reference for b in updated_batches}
+        current_batches_ref = {b.ref for b in current_batches}
+        updated_batches_ref = {b.ref for b in updated_batches}
         new_batches_ref = updated_batches_ref - current_batches_ref
         
         if new_batches_ref:
@@ -146,7 +146,7 @@ class DjangoRepository(AbstractRepository):
 
     @staticmethod
     def _get_batch_by_ref(batches, ref: str):
-        return next(batch for batch in batches if batch.reference == ref)
+        return next(batch for batch in batches if batch.ref == ref)
 
     
     def list(self) -> List[domain_models.Product]:

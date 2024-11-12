@@ -43,7 +43,7 @@ def test_can_create_a_product(lines, domain_product, repo):
     django_product = django_models.Product.objects.get(sku=domain_product.sku).to_domain()
     
     assert django_product.sku == domain_product.sku
-    assert django_product.batches[0].reference == domain_product.batches[0].reference
+    assert django_product.batches[0].ref == domain_product.batches[0].ref
     
     for line in lines:
         assert line in django_product.batches[0].allocations
@@ -70,8 +70,8 @@ def test_can_update_product_after_adding_batch(repo):
     product.add_batch('other_batch', 'sku', 10)
     repo.update(product)
     updated_domain_product_from_db = repo.get('sku')
-    assert 'batch' in {b.reference for b in updated_domain_product_from_db.batches}
-    assert 'other_batch' in {b.reference for b in updated_domain_product_from_db.batches}
+    assert 'batch' in {b.ref for b in updated_domain_product_from_db.batches}
+    assert 'other_batch' in {b.ref for b in updated_domain_product_from_db.batches}
 
 
 @pytest.mark.django_db

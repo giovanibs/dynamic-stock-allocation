@@ -18,9 +18,9 @@ class Product(models.Model):
 
 
 class Batch(models.Model):
-    reference = models.CharField(max_length=255, primary_key=True)
+    ref = models.CharField(max_length=255, primary_key=True)
     product = models.ForeignKey(to=Product, on_delete=models.CASCADE, related_name='batches')
-    purchased_qty = models.IntegerField()
+    qty = models.IntegerField()
     eta = models.DateField(blank=True, null=True)
 
     class Meta:
@@ -30,7 +30,7 @@ class Batch(models.Model):
     def to_domain(self) -> domain_model.Batch:
 
         domain_batch = domain_model.Batch(
-            self.reference, self.product.sku, self.purchased_qty, self.eta
+            self.ref, self.product.sku, self.qty, self.eta
         )
         for line in Allocation.allocations_to_domain(self):
             domain_batch.allocate(line)
