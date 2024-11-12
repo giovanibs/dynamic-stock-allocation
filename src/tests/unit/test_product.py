@@ -1,7 +1,6 @@
 from allocation.domain import events
 from allocation.domain.model import Batch, OrderLine, Product
-from allocation.domain.exceptions import (
-    InvalidSKU, LineIsNotAllocatedError, OutOfStock)
+from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError
 import pytest
 
 

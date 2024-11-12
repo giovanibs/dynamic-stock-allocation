@@ -2,9 +2,7 @@ from typing import List, Optional
 import pytest
 from allocation.adapters.repository import AbstractRepository
 from allocation.domain import events
-from allocation.domain.exceptions import (
-    InexistentProduct, LineIsNotAllocatedError, OutOfStock)
-from allocation.orchestration import services
+from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.domain.model import Product
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
