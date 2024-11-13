@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from datetime import date
-from allocation.domain import events
+from allocation.domain import commands, events
 from allocation.domain.exceptions import (
     CannotOverallocateError, InvalidSKU, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,7 @@ class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
         self._sku = sku
         self._batches = []
-        self._events: List[events.Event] = []
+        self._messages: List[Union[commands.Command, events.Event]] = []
 
         if batches:
             for batch in batches:
@@ -130,8 +130,8 @@ class Product:
     
 
     @property
-    def events(self) -> List[events.Event]:
-        return self._events
+    def messages(self) -> List[Union[commands.Command, events.Event]]:
+        return self._messages
     
 
     def add_batch(self, ref: str, sku: str, qty: int,
@@ -149,7 +149,7 @@ class Product:
         try:
             batch = self._get_suitable_batch_or_raise_error(line)
         except OutOfStock:
-            self._events.append(events.OutOfStock(sku))
+            self._messages.append(events.OutOfStock(sku))
             return None
         
         batch.allocate(line)
@@ -194,6 +194,6 @@ class Product:
 
         while batch.allocated_qty > batch._qty:
             line = batch.deallocate_one()
-            self._events.append(
-                events.AllocationRequired(line.order_id, line.sku, line.qty)
+            self._messages.append(
+                commands.Allocate(line.order_id, line.sku, line.qty)
             )

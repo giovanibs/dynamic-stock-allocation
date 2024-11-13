@@ -1,7 +1,7 @@
 from ninja import NinjaAPI
-from allocation.domain import events
+from allocation.domain import commands
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
-from allocation.orchestration import message_bus
+from allocation.orchestration.message_bus import MessageBus
 from allocation.orchestration.uow import DjangoUoW
 from dddjango.alloc.schemas import BatchIn, BatchOut, BatchRef, Message, OrderLineIn
 
@@ -24,8 +24,8 @@ def allocate(request, payload: OrderLineIn):
     uow = DjangoUoW()
     line = payload.dict()
     try:
-        results = message_bus.handle(
-            events.AllocationRequired(line['order_id'], line['sku'], line['qty']),
+        results = MessageBus.handle(
+            commands.Allocate(line['order_id'], line['sku'], line['qty']),
             uow
         )
         if 'OutOfStock' in results:
@@ -44,8 +44,8 @@ def deallocate(request, payload: OrderLineIn):
     uow = DjangoUoW()
     line = payload.dict()
     try:
-        results = message_bus.handle(
-            events.DeallocationRequired(line['order_id'], line['sku'], line['qty']),
+        results = MessageBus.handle(
+            commands.Deallocate(line['order_id'], line['sku'], line['qty']),
             uow
         )
         batch_ref = results[-1]
@@ -61,7 +61,7 @@ def deallocate(request, payload: OrderLineIn):
 def add_batch(request, payload: BatchIn):
     uow = DjangoUoW()
     batch = payload.dict()
-    message_bus.handle(events.BatchCreated(**batch), uow)
+    MessageBus.handle(commands.CreateBatch(**batch), uow)
     added_batch = next(
         b for b in uow.products.get(batch['sku']).batches
         if b.ref == batch['ref']

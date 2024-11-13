@@ -110,5 +110,5 @@ def test_records_out_of_stock_event_if_cannot_allocate():
     product.add_batch('batch', sku, 1)
     allocation = product.allocate('o1', sku, 2)
 
-    assert product.events[0] == events.OutOfStock(sku)
+    assert product.messages[0] == events.OutOfStock(sku)
     assert allocation is None

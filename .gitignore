@@ -3,3 +3,4 @@
 *db.sqlite3
 src/proactive_stock_allocation.egg-info/
 logs.log
+notify.log
