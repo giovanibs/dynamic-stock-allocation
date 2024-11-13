@@ -10,7 +10,6 @@ def allocate(line: events.AllocationRequired, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(line.sku)
         batch_ref = product.allocate(line.order_id, line.sku, line.qty)
-        uow.products.update(product)
         uow.commit()
     return batch_ref
 
@@ -19,7 +18,6 @@ def deallocate(line: events.DeallocationRequired, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(line.sku)
         batch_ref = product.deallocate(line.order_id, line.sku, line.qty)
-        uow.products.update(product)
         uow.commit()
     return batch_ref
 
@@ -54,8 +52,8 @@ def log_warning(event: events.OutOfStock, uow: AbstractUnitOfWork):
 
 def change_batch_quantity(ref_and_qty: events.ChangeBatchQuantity, uow: AbstractUnitOfWork):
     with uow:
-        batch = uow.products.get_batch_by_ref(ref_and_qty.ref)
-        batch._qty = ref_and_qty.qty
+        product = uow.products.get_by_batch_ref(ref_and_qty.ref)
+        product.change_batch_quantity(ref_and_qty.ref, ref_and_qty.qty)
         uow.commit()
 
-    return batch.ref, batch._qty
+    return ref_and_qty.ref, ref_and_qty.qty

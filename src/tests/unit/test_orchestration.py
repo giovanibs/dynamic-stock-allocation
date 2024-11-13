@@ -43,6 +43,14 @@ class FakeProductRepository(AbstractRepository):
 
         def list(self):
             return list(self._products)
+        
+    
+        def _get_by_batch_ref(self, ref):
+            products = self.list()
+            return next(
+                (p for p in products for b in p.batches if b.ref == ref),
+                None
+            )
 
 
 class FakeProductUoW(AbstractUnitOfWork):
@@ -50,7 +58,7 @@ class FakeProductUoW(AbstractUnitOfWork):
         def __init__(self, repo: AbstractRepository) -> None:
             self._products = repo
             self._commited = False
-            self.collected_events = set()
+            self.collected_events = []
 
 
         @property
@@ -73,9 +81,13 @@ class FakeProductUoW(AbstractUnitOfWork):
 
 
         def _commit(self):
-            self.collected_events.update(list(self.collect_new_events()))
-            if events.OutOfStock in {type(event) for event in self.collected_events}:
+            for product in self.products.seen:
+                if product.events:
+                    self.collected_events.extend(product.events)
+
+            if self.collected_events:
                 return
+            
             self._commited = True
 
 
@@ -125,7 +137,6 @@ class TestServicesAllocate:
         message_bus.handle(events.BatchCreated(*batch), uow)
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         line_with_greater_qty = ('o2', 'skew', 11)
-        
         try:
             message_bus.handle(events.AllocationRequired(*line_with_invalid_sku), uow)
         except InexistentProduct:
@@ -134,7 +145,8 @@ class TestServicesAllocate:
         assert uow.commited == False
 
         results = message_bus.handle(events.AllocationRequired(*line_with_greater_qty), uow)
-        assert results == [None]
+        
+        assert results[-1] == 'OutOfStock'
         assert uow.commited == False
 
 
@@ -231,3 +243,22 @@ class TestChangeBatchQuantity:
         [batch] = uow.products.get(sku='sku').batches
 
         assert batch.available_qty == 5
+
+
+    def test_change_batch_qty_reallocates_when_necessary(self, uow, tomorrow):
+        message_bus.handle(events.BatchCreated('batch1', 'sku', 10, None), uow)
+        message_bus.handle(events.BatchCreated('batch2', 'sku', 10, tomorrow), uow)
+        message_bus.handle(events.AllocationRequired('o1', 'sku', 10), uow)
+        
+        product = uow.products.get_by_batch_ref('batch1')
+        batch1 = next(b for b in product.batches if b.ref == 'batch1')
+        assert batch1.allocated_qty == 10
+        
+        message_bus.handle(events.ChangeBatchQuantity('batch1', 5), uow)
+        
+        batch1 = next(b for b in product.batches if b.ref == 'batch1')
+        batch2 = next(b for b in product.batches if b.ref == 'batch2')
+
+        assert batch1.qty == 5
+        assert batch1.available_qty == 5
+        assert batch2.allocated_qty == 10

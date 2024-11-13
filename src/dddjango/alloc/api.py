@@ -2,7 +2,7 @@ from ninja import NinjaAPI
 from allocation.domain import events
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.orchestration import message_bus
-from allocation.orchestration.uow import DjangoProductUoW
+from allocation.orchestration.uow import DjangoUoW
 from dddjango.alloc.schemas import BatchIn, BatchOut, BatchRef, Message, OrderLineIn
 
 
@@ -11,7 +11,7 @@ api = NinjaAPI()
 
 @api.get('batches/{batch_ref}', response=BatchOut)
 def get_batch_by_ref(request, batch_ref: str):
-    with DjangoProductUoW() as uow:
+    with DjangoUoW() as uow:
         products = uow.products.list()
         batches = {b for p in products for b in p.batches}
         batch = next(batch for batch in batches if batch.ref == batch_ref)
@@ -21,7 +21,7 @@ def get_batch_by_ref(request, batch_ref: str):
 
 @api.post('allocate', response = {201: BatchRef, 400: Message})
 def allocate(request, payload: OrderLineIn):
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
     line = payload.dict()
     try:
         results = message_bus.handle(
@@ -41,7 +41,7 @@ def allocate(request, payload: OrderLineIn):
 
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
 def deallocate(request, payload: OrderLineIn):
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
     line = payload.dict()
     try:
         results = message_bus.handle(
@@ -59,7 +59,7 @@ def deallocate(request, payload: OrderLineIn):
 
 @api.post('batches', response={201: BatchOut})
 def add_batch(request, payload: BatchIn):
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
     batch = payload.dict()
     message_bus.handle(events.BatchCreated(**batch), uow)
     added_batch = next(

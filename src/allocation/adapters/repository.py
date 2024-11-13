@@ -22,8 +22,12 @@ class AbstractRepository(ABC):
 
 
     def get(self, sku) -> domain_.Product:
-        product = self._get(sku)
-        self._seen.add(product)
+        # first check if product is already in self._seen to prevent overwriting
+        # uncommited changes by refetching it from the DB
+        product = next((p for p in self._seen if p.sku == sku), None)
+        if product is None:
+            product = self._get(sku)
+            self._seen.add(product)
         return product
     
 
@@ -42,17 +46,28 @@ class AbstractRepository(ABC):
         raise NotImplementedError()
     
 
-    def get_batch_by_ref(self, ref: str):
-        products = self.list()
-        product, batch = next(
-            ((p, b) for p in products for b in p.batches if b.ref == ref),
-            (None, None)
+    def get_by_batch_ref(self, ref: str):
+        # first check if product is already in self._seen to prevent overwriting
+        # uncommited changes by refetching it from the DB
+        product_in_seen = next(
+            (p for p in self.seen for b in p.batches if b.ref == ref),
+            None
         )
+        if product_in_seen is not None:
+            return product_in_seen
         
-        if product is not None:
-            self._seen.add(product)
+        product = self._get_by_batch_ref(ref)
         
-        return batch
+        if product is None:
+            return None
+        
+        self._seen.add(product)
+        return product
+    
+
+    @abstractmethod
+    def _get_by_batch_ref(self, ref):
+        raise NotImplemented
 
 
 class DjangoRepository(AbstractRepository):
@@ -164,3 +179,11 @@ class DjangoRepository(AbstractRepository):
     
     def list(self) -> List[domain_.Product]:
         return [p.to_domain() for p in orm.Product.objects.all()]
+    
+
+    def _get_by_batch_ref(self, ref):
+        products = self.list()
+        return next(
+            (p for p in products for b in p.batches if b.ref == ref),
+            None
+        )

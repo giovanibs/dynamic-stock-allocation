@@ -36,16 +36,19 @@ class AbstractUnitOfWork(ABC):
         raise NotImplementedError()
 
 
-class DjangoProductUoW(AbstractUnitOfWork):
+class DjangoUoW(AbstractUnitOfWork):
 
-    def __enter__(self):
+    def __init__(self) -> None:
         self._products = DjangoRepository()
+
+    
+    def __enter__(self):
         transaction.set_autocommit(False)
         return super().__enter__()
     
 
     @property
-    def products(self):
+    def products(self) -> DjangoRepository:
         return self._products
     
 

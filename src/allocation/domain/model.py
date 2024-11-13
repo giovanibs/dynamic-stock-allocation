@@ -82,10 +82,27 @@ class Batch:
         
         self._allocations.remove(line)
 
+
+    def deallocate_one(self) -> OrderLine:
+        if self._allocations:
+            return self._allocations.pop()
+        
+        return None
+        
     
     @property
     def allocations(self) -> List[OrderLine]:
         return list(self._allocations)
+    
+
+    @property
+    def qty(self):
+        return self._qty
+    
+
+    @qty.setter
+    def qty(self, value):
+        self._qty = value
 
 
 class Product:
@@ -169,3 +186,14 @@ class Product:
     def validate_sku(self, sku):
         if sku != self._sku:
             raise InvalidSKU()
+        
+
+    def change_batch_quantity(self, ref: str, qty: int):
+        batch = next(b for b in self.batches if b.ref == ref)
+        batch.qty = qty
+
+        while batch.allocated_qty > batch._qty:
+            line = batch.deallocate_one()
+            self._events.append(
+                events.AllocationRequired(line.order_id, line.sku, line.qty)
+            )

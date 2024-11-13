@@ -1,5 +1,5 @@
 from allocation.domain.exceptions import InvalidSKU
-from allocation.orchestration.uow import DjangoProductUoW
+from allocation.orchestration.uow import DjangoUoW
 from dddjango.alloc import models as orm
 from allocation.domain import model as domain_
 import pytest
@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.django_db(transaction=True)
 def test_uow_can_retrieve_a_product_and_add_a_batch():
     insert_product_into_db('skew')
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
 
     with uow:
         product = uow.products.get('skew')
@@ -21,7 +21,7 @@ def test_uow_can_retrieve_a_product_and_add_a_batch():
 @pytest.mark.django_db(transaction=True)
 def test_uow_can_allocate_a_line():
     insert_product_into_db('skew')
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
 
     with uow:
         product = uow.products.get('skew')
@@ -39,7 +39,7 @@ def test_uow_can_deallocate_a_line():
     db_batch = insert_batch_into_db('batch', db_product, 10)
     line = insert_allocation_into_db(db_batch, 'o1', sku , 1)
     
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
 
     with uow:
         product = uow.products.get(sku)
@@ -51,7 +51,7 @@ def test_uow_can_deallocate_a_line():
 
 @pytest.mark.django_db(transaction=True)
 def test_uow_does_not_commit_implicitly():
-    uow = DjangoProductUoW()
+    uow = DjangoUoW()
     product = domain_.Product('skew')
     with uow:
         uow.products.add(product)
@@ -67,7 +67,7 @@ def test_uow_rollbacks_on_error():
     invalid_line = ('o1', 'invalid_sku', 1)
 
     try:
-        with DjangoProductUoW() as uow:
+        with DjangoUoW() as uow:
             product = uow.products.get(sku)
             product.add_batch('batch', sku, 10)
             product.allocate(*invalid_line)
