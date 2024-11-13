@@ -52,12 +52,11 @@ def test_uow_can_deallocate_a_line():
 @pytest.mark.django_db(transaction=True)
 def test_uow_does_not_commit_implicitly():
     uow = DjangoUoW()
-    product = domain_.Product('skew')
     with uow:
-        uow.products.add(product)
+        insert_product_into_db('skew')
 
     with pytest.raises(orm.Product.DoesNotExist):
-        orm.Product.objects.get(sku=product.sku)
+        orm.Product.objects.get(sku='skew')
 
 
 @pytest.mark.django_db(transaction=True)
@@ -69,7 +68,7 @@ def test_uow_rollbacks_on_error():
     try:
         with DjangoUoW() as uow:
             product = uow.products.get(sku)
-            product.add_batch('batch', sku, 10)
+            insert_batch_into_db('batch', orm.Product.objects.get(sku=sku), 10)
             product.allocate(*invalid_line)
             uow.commit()
     except InvalidSKU:
@@ -89,7 +88,7 @@ def retrieve_batch_from_db(ref) -> domain_.Batch | None:
         return None
     
 
-def insert_batch_into_db(ref, product, qty, eta=None) -> orm.Batch:
+def insert_batch_into_db(ref, product: orm.Product, qty, eta=None) -> orm.Batch:
     return orm.Batch.objects.create(
         ref=ref,
         product=product,
