@@ -42,6 +42,19 @@ class AbstractRepository(ABC):
         raise NotImplementedError()
     
 
+    def get_batch_by_ref(self, ref: str):
+        products = self.list()
+        product, batch = next(
+            ((p, b) for p in products for b in p.batches if b.ref == ref),
+            (None, None)
+        )
+        
+        if product is not None:
+            self._seen.add(product)
+        
+        return batch
+
+
 class DjangoRepository(AbstractRepository):
 
     def add(self, product: domain_.Product) -> None:

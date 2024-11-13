@@ -20,4 +20,5 @@ HANDLERS: Dict[Type[events.Event], List[Callable]] = {
     events.BatchCreated: [handlers.add_batch],
     events.AllocationRequired: [handlers.allocate],
     events.DeallocationRequired: [handlers.deallocate],
+    events.ChangeBatchQuantity: [handlers.change_batch_quantity]
 }

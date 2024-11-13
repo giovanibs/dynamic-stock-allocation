@@ -32,3 +32,9 @@ class DeallocationRequired(Event):
     order_id: str
     sku: str
     qty: int
+
+
+@dataclass(frozen=True)
+class ChangeBatchQuantity(Event):
+    ref: str
+    qty: int

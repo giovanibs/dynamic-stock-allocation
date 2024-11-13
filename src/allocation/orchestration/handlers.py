@@ -50,3 +50,12 @@ def log_warning(event: events.OutOfStock, uow: AbstractUnitOfWork):
     logger.warning(f"'{event.sku}' is out of stock!")
 
     return 'OutOfStock' # for returning error msg
+
+
+def change_batch_quantity(ref_and_qty: events.ChangeBatchQuantity, uow: AbstractUnitOfWork):
+    with uow:
+        batch = uow.products.get_batch_by_ref(ref_and_qty.ref)
+        batch._qty = ref_and_qty.qty
+        uow.commit()
+
+    return batch.ref, batch._qty

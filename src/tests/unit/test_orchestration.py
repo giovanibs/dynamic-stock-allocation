@@ -221,3 +221,13 @@ class TestServicesDeallocate:
         
         with pytest.raises(LineIsNotAllocatedError):
             message_bus.handle(events.DeallocationRequired(*line_not_allocated), uow)
+
+
+class TestChangeBatchQuantity:
+
+    def test_can_change_batch_qty(self, uow, tomorrow):
+        message_bus.handle(events.BatchCreated('batch', 'sku', 10, tomorrow), uow)
+        message_bus.handle(events.ChangeBatchQuantity('batch', 5), uow)
+        [batch] = uow.products.get(sku='sku').batches
+
+        assert batch.available_qty == 5
