@@ -18,3 +18,5 @@ django_shell:
 
 django_runserver:
 	@python $(MANAGE) runserver 0.0.0.0:8000
+
+django_up: django_makemigrations django_migrate django_runserver

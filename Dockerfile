@@ -15,10 +15,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY . .
-
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install -e ./src
 
 EXPOSE 8000
 
-CMD make django_runserver
+CMD make django_up

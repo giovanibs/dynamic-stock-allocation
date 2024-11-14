@@ -2,4 +2,24 @@ services:
   app: 
     build: . 
     ports: 
-      - '8000:8000'
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: allocation
+      POSTGRES_USER: allocation
+      POSTGRES_PASSWORD: allocation
+    volumes:
+      - .:/app
+
+
+  db:
+    image: postgres:17.0
+    environment:
+      POSTGRES_DB: allocation
+      POSTGRES_USER: allocation
+      POSTGRES_PASSWORD: allocation
+    ports:
+      - "5432:5432"
