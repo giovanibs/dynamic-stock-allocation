@@ -17,4 +17,4 @@ django_shell:
 	@python $(MANAGE) shell
 
 django_runserver:
-	@python $(MANAGE) runserver
+	@python $(MANAGE) runserver 0.0.0.0:8000
