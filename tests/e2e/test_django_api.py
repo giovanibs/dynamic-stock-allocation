@@ -67,6 +67,17 @@ class TestAllocate:
 
 
     @pytest.mark.django_db(transaction=True)
+    def test_decreases_batch_available_qty_on_allocation(self):
+        batch = ('today', 'skew', 10)
+        post_to_create_batch(*batch)
+        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
+        response = post_to_allocate_line(*line.values())
+        
+        retrieved_batch = retrieve_batch_from_server(response['batch_ref'])
+        assert retrieved_batch['available_qty'] == 0
+
+
+    @pytest.mark.django_db(transaction=True)
     def test_allocate_400_message_for_out_of_stock(self, base_url, client): 
         batch = ('batch', 'skew', 10)
         post_to_create_batch(*batch)
@@ -107,6 +118,22 @@ class TestDeallocate:
         )
         assert response.status_code == 200
         assert response.json()['batch_ref'] == batch[0]
+    
+
+    @pytest.mark.django_db(transaction=True)
+    def test_decreases_batch_allocated_qty_on_deallocation(self, base_url, client):
+        batch = ('today', 'skew', 10)
+        post_to_create_batch(*batch)
+        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
+        post_to_allocate_line(*line.values())
+        
+        response = client.post(
+            path = base_url + 'deallocate',
+            data = line,
+            content_type = "application/json"
+        )
+        retrieved_batch = retrieve_batch_from_server(response.json()['batch_ref'])
+        assert retrieved_batch['allocated_qty'] == 0
 
 
     @pytest.mark.django_db(transaction=True)
@@ -135,19 +162,27 @@ class TestDeallocate:
         assert response.json()['message'] == 'LineIsNotAllocatedError'
 
 
-def post_to_create_batch(ref: str, sku: str, qty: int, eta: Optional[date]=None):
+def post_to_create_batch(ref: str, sku: str, qty: int, eta: Optional[date]=None) -> dict:
     response = Client().post(
         path = '/api/batches',
         data = {'ref': ref,'sku': sku,'qty': qty,'eta': eta},
         content_type = "application/json"
     )
     assert response.status_code == 201
+    return response.json()
 
 
-def post_to_allocate_line(order_id: str, sku: str, qty: int):
+def post_to_allocate_line(order_id: str, sku: str, qty: int) -> dict:
     response = Client().post(
         path = '/api/allocate',
         data = {'order_id': order_id, 'sku': sku, 'qty': qty},
         content_type = "application/json"
     )
     assert response.status_code == 201
+    return response.json()
+
+
+def retrieve_batch_from_server(ref: str) -> dict:
+    response = Client().get(path = f'/api/batches/{ref}')
+    assert response.status_code == 200
+    return response.json()

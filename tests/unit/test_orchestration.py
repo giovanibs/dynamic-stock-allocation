@@ -159,6 +159,13 @@ class TestServicesAllocate:
         
         results = MessageBus.handle(commands.Allocate(*line), uow)
         assert results[-1] == earlier_batch[0]
+    
+
+    def test_allocate_decreases_the_available_qty(self, uow):
+        MessageBus.handle(commands.CreateBatch('batch', 'skew', 10), uow)
+        line = ('o1', 'skew', 10)
+        MessageBus.handle(commands.Allocate(*line), uow)
+        assert uow.products.get(sku='skew').batches[0].available_qty == 0
 
 
     def test_allocate_raises_error_for_invalid_sku(self, batch, uow):
@@ -188,6 +195,15 @@ class TestServicesDeallocate:
         MessageBus.handle(commands.Allocate(*line), uow)
         results = MessageBus.handle(commands.Deallocate(*line), uow)
         assert results[0] == batch_with_the_line[0]
+    
+
+    def test_deallocate_decreases_the_allocated_qty(self, uow):
+        MessageBus.handle(commands.CreateBatch('batch', 'skew', 10), uow)
+        line = ('o1', 'skew', 10)
+        MessageBus.handle(commands.Allocate(*line), uow)
+        MessageBus.handle(commands.Deallocate(*line), uow)
+        
+        assert uow.products.get(sku='skew').batches[0].allocated_qty == 0
 
 
     def test_deallocate_commits_on_happy_path(self, batch, uow):
