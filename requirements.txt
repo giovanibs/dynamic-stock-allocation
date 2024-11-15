@@ -4,3 +4,4 @@ pytest
 pytest-django
 psycopg[binary]
 python-dotenv
+redis
