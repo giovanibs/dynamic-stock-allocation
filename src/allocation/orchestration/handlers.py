@@ -1,9 +1,15 @@
 from dataclasses import astuple
 import logging
 import os
+import redis
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct
 from allocation.orchestration.uow import AbstractUnitOfWork
+
+
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
@@ -12,6 +18,11 @@ def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
         batch_ref = product.allocate(line.order_id, line.sku, line.qty)
         uow.commit()
     return batch_ref
+
+
+def reallocate(line: commands.Reallocate, uow: AbstractUnitOfWork):
+    redis_client.publish('reallocation', line.order_id)
+    return allocate(line, uow)
 
 
 def deallocate(line: commands.Deallocate, uow: AbstractUnitOfWork):

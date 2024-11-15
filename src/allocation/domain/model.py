@@ -195,5 +195,5 @@ class Product:
         while batch.allocated_qty > batch._qty:
             line = batch.deallocate_one()
             self._messages.append(
-                commands.Allocate(line.order_id, line.sku, line.qty)
+                commands.Reallocate(line.order_id, line.sku, line.qty)
             )

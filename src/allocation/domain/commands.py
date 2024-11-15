@@ -33,3 +33,10 @@ class Deallocate(Command):
 class ChangeBatchQuantity(Command):
     ref: str
     qty: int
+
+
+@dataclass(frozen=True)
+class Reallocate(Command):
+    order_id: str
+    sku: str
+    qty: int

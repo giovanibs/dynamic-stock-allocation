@@ -14,6 +14,7 @@ class MessageBus:
         commands.Allocate               : handlers.allocate,
         commands.Deallocate             : handlers.deallocate,
         commands.ChangeBatchQuantity    : handlers.change_batch_quantity,
+        commands.Reallocate             : handlers.reallocate,
     }
 
     EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
