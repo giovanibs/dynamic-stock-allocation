@@ -1,4 +1,4 @@
-from allocation.domain import events
+from allocation.domain import commands, events
 from allocation.domain.model import Batch, OrderLine, Product
 from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError
 import pytest
@@ -110,9 +110,9 @@ class TestProductInstantiation:
             Product('skew', [batch])
 
 
-class TestProductEventRaising:
+class TestProductMessages:
     
-    def test_records_out_of_stock_event_if_cannot_allocate(self):
+    def test_out_of_stock_message_if_cannot_allocate(self):
         sku = 'skew'
         product = Product(sku)
         product.add_batch('batch', sku, 1)
@@ -120,3 +120,46 @@ class TestProductEventRaising:
 
         assert product.messages[-1] == events.OutOfStock(sku)
         assert allocation is None
+    
+    
+    def test_batch_created_message(self, tomorrow):
+        sku = 'skew'
+        product = Product(sku)
+        product.add_batch('batch', sku, 1, tomorrow)
+        assert product.messages[-1] == events.BatchCreated('batch', sku, 1, tomorrow)
+
+
+    def test_line_allocated_message(self, tomorrow):
+        sku = 'skew'
+        batch = ('batch', sku, 10, tomorrow)
+        line = ('o1', sku, 2)
+        product = Product(sku)
+        product.add_batch(*batch)
+        product.allocate(*line)
+        assert product.messages[-1] == events.LineAllocated(*line, batch[0])
+    
+
+    def test_line_deallocated_message(self, tomorrow):
+        sku = 'skew'
+        batch = ('batch', sku, 10, tomorrow)
+        line = ('o1', sku, 2)
+        product = Product(sku)
+        product.add_batch(*batch)
+        product.allocate(*line)
+        product.deallocate(*line)
+        assert product.messages[-1] == events.LineDeallocated(*line, batch[0])
+    
+
+    def test_line_deallocated_and_reallocate_messages_if_quantity_changes(
+            self, tomorrow, later
+    ):
+        sku = 'skew'
+        batch_from = Batch('batch_from', sku, 10, tomorrow)
+        batch_to = Batch('batch_to', sku, 10, later)
+        line = ('o1', sku, 10)
+        product = Product(sku, [batch_from, batch_to])
+        product.allocate(*line)
+        assert product.messages[-1].batch_ref == batch_from.ref
+        product.change_batch_quantity(batch_from.ref, 5)
+        assert product.messages[-2] == events.LineDeallocated(*line, batch_from.ref)
+        assert product.messages[-1] == commands.Reallocate(*line)

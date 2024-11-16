@@ -1,8 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, astuple
 from datetime import date
 from allocation.domain import commands, events
 from allocation.domain.exceptions import (
-    CannotOverallocateError, InvalidSKU, LineIsNotAllocatedError, OutOfStock, SKUsDontMatchError)
+    CannotOverallocateError, InvalidSKU, LineIsNotAllocatedError,
+    OutOfStock, SKUsDontMatchError
+)
 from typing import List, Optional, Set, Union
 
 
@@ -110,7 +112,7 @@ class Product:
 
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None) -> None:
         self._sku = sku
-        self._batches = []
+        self._batches: List[Batch] = []
         self._messages: List[Union[commands.Command, events.Event]] = []
 
         if batches:
@@ -139,6 +141,7 @@ class Product:
     ):
         self.validate_sku(sku)
         self._batches.append(Batch(ref, sku, qty, eta))
+        self._messages.append(events.BatchCreated(ref, sku, qty, eta))
 
 
     def allocate(self, order_id: str, sku: str, qty: int) -> str:
@@ -153,10 +156,11 @@ class Product:
             return None
         
         batch.allocate(line)
+        self._messages.append(events.LineAllocated(*astuple(line), batch.ref))
         return batch.ref
 
 
-    def _get_suitable_batch_or_raise_error(self, line):
+    def _get_suitable_batch_or_raise_error(self, line) -> Batch:
         try:
             return next(batch 
                          for batch in sorted(self._batches)
@@ -171,10 +175,11 @@ class Product:
         line = OrderLine(order_id, sku, qty)
         batch = self._get_batch_with_allocated_line_or_raise_error(line)
         batch.deallocate(line)
+        self._messages.append(events.LineDeallocated(*astuple(line), batch.ref))
         return batch.ref
 
 
-    def _get_batch_with_allocated_line_or_raise_error(self, line: OrderLine):
+    def _get_batch_with_allocated_line_or_raise_error(self, line: OrderLine) -> Batch:
         try:
             return next(batch
                         for batch in self._batches
@@ -194,6 +199,5 @@ class Product:
 
         while batch.allocated_qty > batch._qty:
             line = batch.deallocate_one()
-            self._messages.append(
-                commands.Reallocate(line.order_id, line.sku, line.qty)
-            )
+            self._messages.append(events.LineDeallocated(*astuple(line), batch.ref))
+            self._messages.append(commands.Reallocate(*astuple(line)))
