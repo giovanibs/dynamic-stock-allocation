@@ -85,7 +85,7 @@ class FakeProductUoW(AbstractUnitOfWork):
                 if product.messages:
                     self.collected_messages.extend(product.messages)
 
-            if self.collected_messages:
+            if events.OutOfStock in {type(msg) for msg in self.collected_messages}:
                 return
             
             self._commited = True
@@ -152,7 +152,7 @@ class TestServicesAllocate:
 
     def test_allocate_returns_batch_ref(self, today, later, uow):
         earlier_batch = ('earlier', 'skew', 10, today)
-        later_batch = ('earlier', 'skew', 10, later)
+        later_batch = ('later', 'skew', 10, later)
         MessageBus.handle(commands.CreateBatch(*earlier_batch), uow)
         MessageBus.handle(commands.CreateBatch(*later_batch), uow)
         line = ('o1', 'skew', 1)
