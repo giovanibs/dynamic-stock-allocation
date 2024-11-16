@@ -18,7 +18,10 @@ class MessageBus:
     }
 
     EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
-        events.OutOfStock: [handlers.notify],
+        events.BatchCreated     : [handlers.publish_event],
+        events.LineAllocated    : [handlers.publish_event],
+        events.LineDeallocated  : [handlers.publish_event],
+        events.OutOfStock       : [handlers.publish_event],
     }
 
     
@@ -76,6 +79,7 @@ class MessageBus:
                 results.append(handler(event, uow))
             except Exception as e:
                 logger.error(f'Exception while handling {event} with {handler}: {type(e).__name__}')
+                raise
             
             queue.extend(uow.collect_new_messages())
         
