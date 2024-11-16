@@ -1,3 +1,4 @@
+import datetime
 from ninja import NinjaAPI
 from allocation.domain import commands
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
@@ -61,7 +62,11 @@ def deallocate(request, payload: OrderLineIn):
 def add_batch(request, payload: BatchIn):
     uow = DjangoUoW()
     batch = payload.dict()
+    if isinstance(batch['eta'], datetime.date):
+        batch['eta'] = batch['eta'].isoformat()
+    
     MessageBus.handle(commands.CreateBatch(**batch), uow)
+    
     added_batch = next(
         b for b in uow.products.get(batch['sku']).batches
         if b.ref == batch['ref']
