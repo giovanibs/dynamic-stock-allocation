@@ -129,6 +129,16 @@ class TestProductMessages:
         assert product.messages[-1] == events.BatchCreated('batch', sku, 1, tomorrow)
 
 
+    def test_batch_created_message_when_using_product_init(self, tomorrow):
+        sku = 'skew'
+        product = Product(
+            sku,
+            [Batch('batch1', sku, 1, tomorrow), Batch('batch2', sku, 1, tomorrow)]
+        )
+        assert product.messages[-1] == events.BatchCreated('batch2', sku, 1, tomorrow)
+        assert product.messages[-2] == events.BatchCreated('batch1', sku, 1, tomorrow)
+
+
     def test_line_allocated_message(self, tomorrow):
         sku = 'skew'
         batch = ('batch', sku, 10, tomorrow)

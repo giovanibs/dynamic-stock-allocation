@@ -119,6 +119,7 @@ class Product:
             for batch in batches:
                 self.validate_sku(batch.sku)
                 self._batches.append(batch)
+                self._messages.append(events.BatchCreated(**batch.properties_dict))
 
 
     @property
