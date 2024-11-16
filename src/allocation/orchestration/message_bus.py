@@ -38,7 +38,7 @@ class MessageBus:
                 results.append(cls.handle_command(message, queue, uow, logger))
             
             elif isinstance(message, events.Event):
-                results.extend(cls.handle_event(message, queue, uow, logger))
+                cls.handle_event(message, queue, uow, logger)
             
             else:
                 raise TypeError(f'{message} is neither a command nor an event.')

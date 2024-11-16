@@ -1,7 +1,7 @@
 from dataclasses import asdict, astuple
 import logging
 from allocation.domain import events, commands, model as domain_
-from allocation.domain.exceptions import InexistentProduct
+from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
 from allocation.adapters.redis_publisher import redis_client, RedisEventPublisher
 
@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(line.sku)
-        batch_ref = product.allocate(line.order_id, line.sku, line.qty)
+
+        try:
+            batch_ref = product.allocate(line.order_id, line.sku, line.qty)
+        except OutOfStock:
+            uow.rollback()
+            return 'OutOfStock'
+
         uow.commit()
     return batch_ref
 

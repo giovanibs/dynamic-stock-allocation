@@ -1,6 +1,6 @@
 from allocation.domain import commands, events
 from allocation.domain.model import Batch, OrderLine, Product
-from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError
+from allocation.domain.exceptions import InvalidSKU, LineIsNotAllocatedError, OutOfStock
 import pytest
 
 
@@ -116,10 +116,11 @@ class TestProductMessages:
         sku = 'skew'
         product = Product(sku)
         product.add_batch('batch', sku, 1)
-        allocation = product.allocate('o1', sku, 2)
-
+        try:
+            product.allocate('o1', sku, 2)
+        except OutOfStock:
+            pass
         assert product.messages[-1] == events.OutOfStock(sku)
-        assert allocation is None
     
     
     def test_batch_created_message(self, tomorrow):

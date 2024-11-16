@@ -81,17 +81,21 @@ class FakeProductUoW(AbstractUnitOfWork):
 
 
         def _commit(self):
-            for product in self.products.seen:
-                if product.messages:
-                    self.collected_messages.extend(product.messages)
+            self._collect_messages()
 
             if events.OutOfStock in {type(msg) for msg in self.collected_messages}:
                 return
             
             self._commited = True
 
+        def _collect_messages(self):
+            for product in self.products.seen:
+                if product.messages:
+                    self.collected_messages.extend(product.messages)
+
 
         def rollback(self):
+            self._collect_messages()
             pass
 
 

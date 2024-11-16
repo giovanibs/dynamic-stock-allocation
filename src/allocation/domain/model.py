@@ -154,7 +154,7 @@ class Product:
             batch = self._get_suitable_batch_or_raise_error(line)
         except OutOfStock:
             self._messages.append(events.OutOfStock(sku))
-            return None
+            raise
         
         batch.allocate(line)
         self._messages.append(events.LineAllocated(*astuple(line), batch.ref))
