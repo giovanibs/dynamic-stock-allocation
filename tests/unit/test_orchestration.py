@@ -105,7 +105,7 @@ def batch(tomorrow):
     return ('batch', 'skew', 10, tomorrow)
 
 
-class TestServicesAdd:
+class TestOrchestrationAddBatch:
 
     def test_can_add_a_batch(self, batch, uow):
         MessageBus.handle(commands.CreateBatch(*batch), uow)
@@ -123,7 +123,7 @@ class TestServicesAdd:
         assert batch[0] in {b.ref for b in product.batches}
 
 
-class TestServicesAllocate:
+class TestOrchestrationAllocate:
 
     def test_allocate_commits_on_happy_path(self, batch, uow):
         MessageBus.handle(commands.CreateBatch(*batch), uow)
@@ -184,7 +184,7 @@ class TestServicesAllocate:
         assert events.OutOfStock in {type(event) for event in uow.collected_messages}
 
 
-class TestServicesDeallocate:
+class TestOrchestrationDeallocate:
 
     def test_deallocate_returns_batch_ref(self, uow):
         batch_with_the_line = ('it_is_me', 'skew', 10, None)
@@ -251,7 +251,7 @@ class TestServicesDeallocate:
             MessageBus.handle(commands.Deallocate(*line_not_allocated), uow)
 
 
-class TestChangeBatchQuantity:
+class TestOrchestrationChangeBatchQuantity:
 
     def test_can_change_batch_qty(self, uow, tomorrow):
         MessageBus.handle(commands.CreateBatch('batch', 'sku', 10, tomorrow), uow)
