@@ -34,7 +34,8 @@ def main():
         'consumer_ping',
         'create_batch',
         'allocate_line',
-        'deallocate_line'
+        'deallocate_line',
+        'change_batch_quantity',
     ]
     for channel in channels:
         subscriber.subscribe(channel)
@@ -67,6 +68,12 @@ def event_listener(subscriber):
             line_data = json.loads(msg['data'])
             message_bus.MessageBus.handle(
                 commands.Deallocate(**line_data),
+                DjangoUoW()
+            )
+        elif msg['channel'] == 'change_batch_quantity':
+            data = json.loads(msg['data'])
+            message_bus.MessageBus.handle(
+                commands.ChangeBatchQuantity(**data),
                 DjangoUoW()
             )
 

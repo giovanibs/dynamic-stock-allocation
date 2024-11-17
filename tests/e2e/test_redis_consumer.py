@@ -79,7 +79,6 @@ def test_can_allocate_a_line_using_redis_as_entrypoint(today, subscriber, consum
         consumer_process.wait()
 
 
-
 @pytest.mark.django_db(transaction=True)
 def test_can_allocate_a_line_using_redis_as_entrypoint(today, subscriber, consumer_process):
     subscriber.subscribe('line_deallocated')
@@ -104,6 +103,45 @@ def test_can_allocate_a_line_using_redis_as_entrypoint(today, subscriber, consum
         assert data['order_id'] == line['order_id']
         assert data['sku'] == line['sku']
         assert data['qty'] == line['qty']
+    finally:
+        consumer_process.terminate()
+        consumer_process.wait()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_can_change_batch_quantity_using_redis_as_entrypoint(today, subscriber, consumer_process):
+    subscriber.subscribe('line_deallocated')
+    subscriber.subscribe('out_of_stock')
+
+    batch = {
+        'ref': 'batch',
+        'sku': 'sku',
+        'qty': 10,
+        'eta': today.isoformat(),
+    }
+    line = {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
+    batch_change = {'ref': batch['ref'], 'qty': 5}
+    json_batch = json.dumps(batch)
+    json_line = json.dumps(line)
+    json_batch_change = json.dumps(batch_change)
+    redis_client.publish(channel='create_batch', message=json_batch)
+    redis_client.publish(channel='allocate_line', message=json_line)
+    redis_client.publish(channel='change_batch_quantity', message=json_batch_change)
+    
+    try:
+        sleep(0.1) # let it process
+        message = receive_message(subscriber)
+        assert message['channel'] == 'line_deallocated'
+        data = json.loads(message['data'])
+        assert data['order_id'] == line['order_id']
+        assert data['sku'] == line['sku']
+        assert data['qty'] == line['qty']
+        assert data['batch_ref'] == batch['ref']
+
+        message = receive_message(subscriber)
+        assert message['channel'] == 'out_of_stock'
+        assert json.loads(message['data'])['sku'] == 'sku'
+
     finally:
         consumer_process.terminate()
         consumer_process.wait()
