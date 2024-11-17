@@ -37,7 +37,6 @@ class TestRedisPublishesEvents:
         assert json.loads(message['data'])['eta'] == batch[3].isoformat()
 
         
-    @pytest.mark.skip
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_line_allocated(self, subscriber, batch, uow):
         subscriber.subscribe('line_allocated')
@@ -52,7 +51,6 @@ class TestRedisPublishesEvents:
         assert json.loads(message['data'])['batch_ref'] == batch[0]
 
 
-    @pytest.mark.skip
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_line_deallocated(self, subscriber, batch, uow):
         subscriber.subscribe('line_deallocated')
@@ -67,7 +65,6 @@ class TestRedisPublishesEvents:
         assert json.loads(message['data'])['qty'] == line[2]
 
 
-    @pytest.mark.skip
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_out_of_stock(self, subscriber, batch, uow):
         subscriber.subscribe('out_of_stock')
