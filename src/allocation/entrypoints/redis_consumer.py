@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import redis
+from typing import Dict
 
 from allocation.domain import commands
 from allocation.orchestration import message_bus
@@ -25,19 +26,18 @@ REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_PORT = os.getenv('REDIS_PORT')
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
+CHANNEL_COMMAND_MAP: Dict[str, commands.Command] = {
+        'create_batch'          : commands.CreateBatch,
+        'allocate_line'         : commands.Allocate,
+        'deallocate_line'       : commands.Deallocate,
+        'change_batch_quantity' : commands.ChangeBatchQuantity,
+    }
+
 
 def main():
-    logger.debug('Starting redis consumer')
     subscriber = redis_client.pubsub(ignore_subscribe_messages=True)
     
-    channels = [
-        'consumer_ping',
-        'create_batch',
-        'allocate_line',
-        'deallocate_line',
-        'change_batch_quantity',
-    ]
-    for channel in channels:
+    for channel in CHANNEL_COMMAND_MAP:
         subscriber.subscribe(channel)
     
     try:
@@ -48,34 +48,12 @@ def main():
 
 def event_listener(subscriber):
     for msg in subscriber.listen():
+        data = json.loads(msg['data'])
+        message_bus.MessageBus.handle(
+            CHANNEL_COMMAND_MAP[msg['channel']](**data),
+            DjangoUoW()
+        )
 
-        if msg['channel'] == 'consumer_ping':
-            redis_client.publish('consumer_pong', 'pong')
-
-        elif msg['channel'] == 'create_batch':
-            batch_data = json.loads(msg['data'])
-            message_bus.MessageBus.handle(
-                commands.CreateBatch(**batch_data),
-                DjangoUoW()
-            )
-        elif msg['channel'] == 'allocate_line':
-            line_data = json.loads(msg['data'])
-            message_bus.MessageBus.handle(
-                commands.Allocate(**line_data),
-                DjangoUoW()
-            )
-        elif msg['channel'] == 'deallocate_line':
-            line_data = json.loads(msg['data'])
-            message_bus.MessageBus.handle(
-                commands.Deallocate(**line_data),
-                DjangoUoW()
-            )
-        elif msg['channel'] == 'change_batch_quantity':
-            data = json.loads(msg['data'])
-            message_bus.MessageBus.handle(
-                commands.ChangeBatchQuantity(**data),
-                DjangoUoW()
-            )
 
 if __name__ == '__main__':
     main()
