@@ -79,6 +79,36 @@ def test_can_allocate_a_line_using_redis_as_entrypoint(today, subscriber, consum
         consumer_process.wait()
 
 
+
+@pytest.mark.django_db(transaction=True)
+def test_can_allocate_a_line_using_redis_as_entrypoint(today, subscriber, consumer_process):
+    subscriber.subscribe('line_deallocated')
+
+    batch = {
+        'ref': 'batch',
+        'sku': 'sku',
+        'qty': 10,
+        'eta': today.isoformat(),
+    }
+    line = {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
+    json_batch = json.dumps(batch)
+    json_line = json.dumps(line)
+    redis_client.publish(channel='create_batch', message=json_batch)
+    redis_client.publish(channel='allocate_line', message=json_line)
+    redis_client.publish(channel='deallocate_line', message=json_line)
+    
+    try:
+        sleep(0.1) # let it process
+        message = receive_message(subscriber)
+        data = json.loads(message['data'])
+        assert data['order_id'] == line['order_id']
+        assert data['sku'] == line['sku']
+        assert data['qty'] == line['qty']
+    finally:
+        consumer_process.terminate()
+        consumer_process.wait()
+
+
 def test_redis_consumer_is_listening(subscriber: PubSub, consumer_process: subprocess.Popen[bytes]):
     
     subscriber.subscribe('consumer_pong')

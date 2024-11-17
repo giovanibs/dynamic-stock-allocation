@@ -30,7 +30,13 @@ def main():
     logger.debug('Starting redis consumer')
     subscriber = redis_client.pubsub(ignore_subscribe_messages=True)
     
-    for channel in ['consumer_ping', 'create_batch', 'allocate_line']:
+    channels = [
+        'consumer_ping',
+        'create_batch',
+        'allocate_line',
+        'deallocate_line'
+    ]
+    for channel in channels:
         subscriber.subscribe(channel)
     
     try:
@@ -55,6 +61,12 @@ def event_listener(subscriber):
             line_data = json.loads(msg['data'])
             message_bus.MessageBus.handle(
                 commands.Allocate(**line_data),
+                DjangoUoW()
+            )
+        elif msg['channel'] == 'deallocate_line':
+            line_data = json.loads(msg['data'])
+            message_bus.MessageBus.handle(
+                commands.Deallocate(**line_data),
                 DjangoUoW()
             )
 
