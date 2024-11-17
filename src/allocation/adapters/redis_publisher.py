@@ -23,10 +23,11 @@ class DateEncoder(json.JSONEncoder):
 class RedisEventPublisher:
     
     CHANNELS: Dict[Type[events.Event], str] = {
-            events.BatchCreated     : 'batch_created',
-            events.LineAllocated    : 'line_allocated',
-            events.LineDeallocated  : 'line_deallocated',
-            events.OutOfStock       : 'out_of_stock',
+            events.BatchCreated         : 'batch_created',
+            events.BatchQuantityChanged : 'batch_quantity_changed',
+            events.LineAllocated        : 'line_allocated',
+            events.LineDeallocated      : 'line_deallocated',
+            events.OutOfStock           : 'out_of_stock',
         }
     
     

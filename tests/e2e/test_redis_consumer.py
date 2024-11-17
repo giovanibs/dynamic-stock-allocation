@@ -90,6 +90,7 @@ def test_can_deallocate_a_line_via_redis(batch, line, subscriber, consumer_proce
 def test_can_change_batch_quantity_via_redis(batch, line, subscriber, consumer_process):
     subscriber.subscribe('line_deallocated')
     subscriber.subscribe('out_of_stock')
+    subscriber.subscribe('batch_quantity_changed')
     batch_change = {'ref': batch['ref'], 'qty': 5}
     json_batch = json.dumps(batch)
     json_line = json.dumps(line)
@@ -104,6 +105,12 @@ def test_can_change_batch_quantity_via_redis(batch, line, subscriber, consumer_p
         data = json.loads(message['data'])
         assert_line_fields_match(line, data)
         assert data['batch_ref'] == batch['ref']
+
+        message = receive_message(subscriber)
+        assert message['channel'] == 'batch_quantity_changed'
+        data = json.loads(message['data'])
+        assert data['ref'] == batch_change['ref']
+        assert data['qty'] == batch_change['qty']
 
         message = receive_message(subscriber)
         assert message['channel'] == 'out_of_stock'
@@ -126,7 +133,7 @@ def receive_message(subscriber):
         message = subscriber.get_message()
         if message:
             return message
-        sleep(0.1)
+        sleep(0.2)
         retries -= 1
     else:
         raise AssertionError

@@ -21,6 +21,12 @@ class BatchCreated(Event):
 
 
 @dataclass(frozen=True)
+class BatchQuantityChanged(Event):
+    ref: str
+    qty: int
+
+
+@dataclass(frozen=True)
 class LineAllocated(Event):
     order_id: str
     sku: str

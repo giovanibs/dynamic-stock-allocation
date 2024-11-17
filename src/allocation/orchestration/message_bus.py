@@ -18,10 +18,11 @@ class MessageBus:
     }
 
     EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
-        events.BatchCreated     : [handlers.publish_event],
-        events.LineAllocated    : [handlers.publish_event],
-        events.LineDeallocated  : [handlers.publish_event],
-        events.OutOfStock       : [handlers.publish_event],
+        events.BatchCreated         : [handlers.publish_event],
+        events.BatchQuantityChanged : [handlers.publish_event],
+        events.LineAllocated        : [handlers.publish_event],
+        events.LineDeallocated      : [handlers.publish_event],
+        events.OutOfStock           : [handlers.publish_event],
     }
 
     
@@ -53,7 +54,7 @@ class MessageBus:
                        uow: uow.AbstractUnitOfWork,
                        logger: logging.Logger
     ):
-        logger.debug(f'Handling {command}')
+        logger.debug(f'Handling {command} with {cls.COMMAND_HANDLERS[type(command)]}')
         try:
             result = cls.COMMAND_HANDLERS[type(command)](command, uow)
         except Exception as e:
@@ -61,7 +62,6 @@ class MessageBus:
             raise
 
         queue.extend(uow.collect_new_messages())
-        logger.debug(f"{command} result: '{result}'")
         return result
 
 

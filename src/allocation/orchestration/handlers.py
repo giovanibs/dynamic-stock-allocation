@@ -6,9 +6,6 @@ from allocation.orchestration.uow import AbstractUnitOfWork
 from allocation.adapters.redis_publisher import redis_client, RedisEventPublisher
 
 
-logger = logging.getLogger(__name__)
-
-
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(line.sku)
@@ -51,7 +48,6 @@ def add_batch(batch: commands.CreateBatch, uow: AbstractUnitOfWork) -> None:
 
 def publish_event(event: events.Event, *args, **kwargs):
     redis_publisher = RedisEventPublisher(redis_client)
-    logger.debug('Publishing %s', event)
     redis_publisher.publish_event(event)
     
 

@@ -76,14 +76,27 @@ class TestRedisPublishesEvents:
         assert json.loads(message['data'])['sku'] == 'skew'
 
     
+    @pytest.mark.django_db(transaction=True)
+    def test_redis_publishes_batch_changed(self, subscriber, batch, uow):
+        subscriber.subscribe('batch_quantity_changed')
+        line = ('o1', 'skew', batch[2])
+        MessageBus.handle(commands.CreateBatch(*batch), uow)
+        MessageBus.handle(commands.Allocate(*line), uow)
+        MessageBus.handle(commands.ChangeBatchQuantity(batch[0], batch[2] - 1), uow)
+        message = self.receive_message(subscriber)
+        assert message['channel'] == 'batch_quantity_changed'
+        assert json.loads(message['data'])['ref'] == batch[0]
+        assert json.loads(message['data'])['qty'] == batch[2] - 1
+
+
     @staticmethod
     def receive_message(subscriber):
-        retries = 3
+        retries = 5
         while retries:
             message = subscriber.get_message()
             if message:
                 return message
-            sleep(0.3)
+            sleep(0.2)
             retries -= 1
         else:
             raise AssertionError

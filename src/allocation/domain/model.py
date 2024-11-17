@@ -202,3 +202,5 @@ class Product:
             line = batch.deallocate_one()
             self._messages.append(events.LineDeallocated(*astuple(line), batch.ref))
             self._messages.append(commands.Reallocate(*astuple(line)))
+        
+        self._messages.append(events.BatchQuantityChanged(ref, qty))

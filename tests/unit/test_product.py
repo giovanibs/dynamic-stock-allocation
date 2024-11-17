@@ -172,5 +172,6 @@ class TestProductMessages:
         product.allocate(*line)
         assert product.messages[-1].batch_ref == batch_from.ref
         product.change_batch_quantity(batch_from.ref, 5)
-        assert product.messages[-2] == events.LineDeallocated(*line, batch_from.ref)
-        assert product.messages[-1] == commands.Reallocate(*line)
+        assert product.messages[-3] == events.LineDeallocated(*line, batch_from.ref)
+        assert product.messages[-2] == commands.Reallocate(*line)
+        assert product.messages[-1] == events.BatchQuantityChanged(batch_from.ref, 5)
