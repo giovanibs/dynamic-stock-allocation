@@ -29,8 +29,10 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=Tr
 def main():
     logger.debug('Starting redis consumer')
     subscriber = redis_client.pubsub(ignore_subscribe_messages=True)
-    subscriber.subscribe('consumer_ping')
-    subscriber.subscribe('create_batch')
+    
+    for channel in ['consumer_ping', 'create_batch', 'allocate_line']:
+        subscriber.subscribe(channel)
+    
     try:
         event_listener(subscriber)
     except:
@@ -47,6 +49,12 @@ def event_listener(subscriber):
             batch_data = json.loads(msg['data'])
             message_bus.MessageBus.handle(
                 commands.CreateBatch(**batch_data),
+                DjangoUoW()
+            )
+        elif msg['channel'] == 'allocate_line':
+            line_data = json.loads(msg['data'])
+            message_bus.MessageBus.handle(
+                commands.Allocate(**line_data),
                 DjangoUoW()
             )
 
