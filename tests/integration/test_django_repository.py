@@ -1,4 +1,4 @@
-from allocation.adapters.repository import DjangoRepository
+from allocation.adapters.django_repository import DjangoRepository
 from allocation.domain import model as domain_
 from allocation.domain.exceptions import InexistentProduct
 from dddjango.alloc import models as orm

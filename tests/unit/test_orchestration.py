@@ -1,15 +1,15 @@
 from typing import List, Optional
 import pytest
-from allocation.adapters.repository import AbstractRepository
 from allocation.domain import commands, events
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.domain.model import Product
+from allocation.domain.ports import AbstractWriteRepository
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
 from allocation.orchestration.message_bus import MessageBus
 
 
-class FakeProductRepository(AbstractRepository):
+class FakeProductRepository(AbstractWriteRepository):
 
         def __init__(self, products: Optional[List[Product]] = None) -> None:
             super().__init__()
@@ -55,7 +55,7 @@ class FakeProductRepository(AbstractRepository):
 
 class FakeProductUoW(AbstractUnitOfWork):
 
-        def __init__(self, repo: AbstractRepository) -> None:
+        def __init__(self, repo: AbstractWriteRepository) -> None:
             self._products = repo
             self._commited = False
             self.collected_messages = []
@@ -67,7 +67,7 @@ class FakeProductUoW(AbstractUnitOfWork):
         
 
         @property
-        def products(self) -> AbstractRepository:
+        def products(self) -> AbstractWriteRepository:
             return self._products
         
 

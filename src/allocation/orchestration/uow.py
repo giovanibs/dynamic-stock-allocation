@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from allocation.adapters.repository import (
-    DjangoRepository, AbstractRepository)
+from allocation.domain.ports import AbstractWriteRepository
+from allocation.adapters.django_repository import DjangoRepository
 from django.db import transaction
 
 
 class AbstractUnitOfWork(ABC):
-    products: AbstractRepository
+    products: AbstractWriteRepository
 
 
     def __exit__(self, *args):
