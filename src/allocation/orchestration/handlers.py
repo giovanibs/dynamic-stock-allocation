@@ -1,5 +1,4 @@
 from dataclasses import asdict, astuple
-import logging
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
@@ -39,9 +38,8 @@ def add_batch(batch: commands.CreateBatch, uow: AbstractUnitOfWork) -> None:
             uow.products.get(sku=batch.sku).add_batch(*astuple(batch))
         
         except InexistentProduct:
-            uow.products.add(
-                domain_.Product(batch.sku, [domain_.Batch(*astuple(batch))])
-            )
+            uow.products.add(domain_.Product(batch.sku))
+            uow.products.get(sku=batch.sku).add_batch(*astuple(batch))
         uow.commit()
     return batch
 

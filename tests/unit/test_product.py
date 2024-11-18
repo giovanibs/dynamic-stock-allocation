@@ -130,14 +130,19 @@ class TestProductMessages:
         assert product.messages[-1] == events.BatchCreated('batch', sku, 1, tomorrow)
 
 
-    def test_batch_created_message_when_using_product_init(self, tomorrow):
+    def test_NO_batch_created_message_when_using_product_init(self, tomorrow):
+        """Adding batches to a product in its initialization is not supposed to
+        emit the BatchCreated event, it's just a convenience for Django model's
+        `to_domain` method and for testing purposes"""
         sku = 'skew'
         product = Product(
             sku,
-            [Batch('batch1', sku, 1, tomorrow), Batch('batch2', sku, 1, tomorrow)]
+            [
+                Batch('batch1', sku, 1, tomorrow),
+                Batch('batch2', sku, 1, tomorrow)
+            ]
         )
-        assert product.messages[-1] == events.BatchCreated('batch2', sku, 1, tomorrow)
-        assert product.messages[-2] == events.BatchCreated('batch1', sku, 1, tomorrow)
+        assert len(product.messages) == 0
 
 
     def test_line_allocated_message(self, tomorrow):

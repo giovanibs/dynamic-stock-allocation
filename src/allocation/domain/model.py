@@ -25,6 +25,10 @@ class Batch:
         self.eta = eta
         self._allocations: Set[OrderLine] = set()
 
+    
+    def __repr__(self) -> str:
+        return f'Batch({self.ref}, {self.sku}, {self.qty}, {self.eta})'
+
 
     def __gt__(self, other: 'Batch'):
         if self.eta is None:
@@ -119,7 +123,6 @@ class Product:
             for batch in batches:
                 self.validate_sku(batch.sku)
                 self._batches.append(batch)
-                self._messages.append(events.BatchCreated(**batch.properties_dict))
 
 
     @property
