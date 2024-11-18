@@ -133,7 +133,7 @@ def receive_message(subscriber):
         message = subscriber.get_message()
         if message:
             return message
-        sleep(0.2)
+        sleep(0.3)
         retries -= 1
     else:
         raise AssertionError
