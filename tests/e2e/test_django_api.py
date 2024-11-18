@@ -12,9 +12,9 @@ def client():
     return Client()
 
 
+@pytest.mark.django_db(transaction=True)
 class TestBatch:
 
-    @pytest.mark.django_db(transaction=True)
     def test_add_batch(self, today):
         batch = {'ref': 'batch', 'sku': 'skew', 'qty': 10, 'eta': today.isoformat()}
         response = post_to_create_batch(**batch)
@@ -24,7 +24,6 @@ class TestBatch:
             assert resp_batch[field] == batch[field]
 
 
-    @pytest.mark.django_db(transaction=True)
     def test_can_retrieve_batch_info(self):
         batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
         post_to_create_batch(**batch)
@@ -34,9 +33,9 @@ class TestBatch:
             assert resp_batch[field] == batch[field]
 
 
+@pytest.mark.django_db(transaction=True)
 class TestAllocate:
         
-    @pytest.mark.django_db(transaction=True)
     def test_api_returns_batch_ref_on_allocation(self, today, tomorrow, later):
         sku = 'skew'
         earliest_batch = ('today', sku, 10, today)
@@ -51,7 +50,6 @@ class TestAllocate:
         assert response.json()['batch_ref'] == earliest_batch[0]
 
 
-    @pytest.mark.django_db(transaction=True)
     def test_allocate_400_message_for_out_of_stock(self): 
         batch = ('batch', 'skew', 10)
         post_to_create_batch(*batch)
@@ -61,7 +59,6 @@ class TestAllocate:
         assert response.json()['message'] == 'OutOfStock'
 
 
-    @pytest.mark.django_db(transaction=True)
     def test_allocate_400_message_for_inexistent_product(self):
         line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
         response = post_to_allocate_line(**line, assert_ok=False)
@@ -69,9 +66,9 @@ class TestAllocate:
         assert response.json()['message'] == 'InexistentProduct'
 
 
+@pytest.mark.django_db(transaction=True)
 class TestDeallocate:
 
-    @pytest.mark.django_db(transaction=True)
     def test_api_returns_batch_ref_on_deallocation(self):
         batch = ('today', 'skew', 10)
         post_to_create_batch(*batch)
@@ -82,7 +79,6 @@ class TestDeallocate:
         assert response.json()['batch_ref'] == batch[0]
     
 
-    @pytest.mark.django_db(transaction=True)
     def test_deallocate_400_message_for_inexistent_product(self):
         line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
         response = post_to_deallocate_line(**line, assert_ok=False)
@@ -90,7 +86,6 @@ class TestDeallocate:
         assert response.json()['message'] == 'InexistentProduct'
 
 
-    @pytest.mark.django_db(transaction=True)
     def test_deallocate_400_message_for_line_not_allocated(self): 
         batch = ('batch', 'skew', 10)
         post_to_create_batch(*batch)
