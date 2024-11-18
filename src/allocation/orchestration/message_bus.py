@@ -95,6 +95,9 @@ class MessageBus:
 
         filename = os.path.join(os.getcwd(), 'logs.log')
         file_handler = logging.FileHandler(filename, mode='a')
+        formatter = logging.Formatter('%(asctime)s--%(name)s--%(levelname)s: %(message)s',
+                                  "%Y-%m-%d %H:%M:%S")
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         logger.setLevel(logging.DEBUG)
         return logger
