@@ -13,8 +13,7 @@ class BatchIn(Schema):
 class BatchOut(Schema):
     ref: str
     sku: str
-    allocated_qty: int
-    available_qty: int
+    qty: int
     eta: Union[date, None]
 
 
