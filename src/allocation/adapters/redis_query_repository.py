@@ -16,4 +16,9 @@ class RedisQueryRepository(AbstractQueryRepository):
 
     def allocation_for_line(self, order_id: str, sku: str) -> str:
         return self._client.hget('allocation', f'{order_id}--{sku}')
+
+
+    def allocations_for_order(self, order_id: str):
+        allocations = self._client.hget('order_allocations', order_id)
+        return pickle.loads(allocations) if allocations else None
         

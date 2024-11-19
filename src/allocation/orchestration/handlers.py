@@ -1,9 +1,14 @@
 from dataclasses import asdict, astuple
+import os
 import pickle
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
-from allocation.adapters.redis_publisher import redis_client, RedisEventPublisher
+from allocation.adapters.redis_publisher import RedisEventPublisher
+import redis
+
+
+redis_client = redis.Redis(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
 
 
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
@@ -66,3 +71,16 @@ def add_batch_to_query_repository(batch_created: events.BatchCreated, *args, **k
 
 def add_allocation_to_query_repository(line: events.LineAllocated, *args, **kwargs):
     redis_client.hset('allocation', f'{line.order_id}--{line.sku}', line.batch_ref)
+
+
+def add_order_allocation_to_query_repository(line: events.LineAllocated, *args, **kwargs):
+    new_allocation = {line.sku: line.batch_ref}
+    allocations = redis_client.hget('order_allocations', line.order_id)
+
+    if allocations is None:
+        allocations = [new_allocation]
+    else:
+        allocations = pickle.loads(allocations)
+        allocations.append(new_allocation)
+    
+    redis_client.hset('order_allocations', line.order_id, pickle.dumps(allocations))

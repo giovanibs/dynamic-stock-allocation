@@ -48,3 +48,36 @@ def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
         retries -= 1
     
     assert batch_ref.decode() == batch['ref']
+
+
+@pytest.mark.django_db(transaction=True)
+def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
+    order_id = 'order1'
+    batch1 =  ('batch1', 'sku1', 10, tomorrow)
+    batch2 =  ('batch2', 'sku2', 10, tomorrow)
+    batch3 =  ('batch3', 'sku3', 10, tomorrow)
+    line1 =  (order_id, 'sku1', 10)
+    line2 =  (order_id, 'sku2', 10)
+    line3 =  (order_id, 'sku3', 10)
+    bus.handle(commands.CreateBatch(*batch1), django_uow)
+    bus.handle(commands.CreateBatch(*batch2), django_uow)
+    bus.handle(commands.CreateBatch(*batch3), django_uow)
+    bus.handle(commands.Allocate(*line1), django_uow)
+    bus.handle(commands.Allocate(*line2), django_uow)
+    bus.handle(commands.Allocate(*line3), django_uow)
+    
+    retries = 5
+    while retries:
+        allocations = redis_repo.allocations_for_order(order_id)
+
+        if allocations:
+            break
+
+        sleep(0.5)
+        retries -= 1
+    
+    assert allocations == [
+                            {'sku1': 'batch1'},
+                            {'sku2': 'batch2'},
+                            {'sku3': 'batch3'},
+                          ]

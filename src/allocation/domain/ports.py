@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Set, Tuple
+from typing import Dict, List, Set
 
 from allocation.domain.model import Batch, Product
 
@@ -79,4 +79,9 @@ class AbstractQueryRepository(ABC):
 
     def allocation_for_line(self, order_id: str, sku: str) -> str:
         """Returns the batch reference for a given order line."""
+        raise NotImplementedError
+
+
+    def allocations_for_order(self, order_id: str) -> List[Dict[str, str]]:
+        """Returns a list of mappings `sku: batch_ref` for a given `order_id`"""
         raise NotImplementedError
