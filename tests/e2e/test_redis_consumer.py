@@ -1,6 +1,7 @@
 """Tests for guaranteeing the redis consumer does its work."""
 import json
 from time import sleep
+from uuid import uuid4
 import pytest
 from allocation.adapters.redis_channels import RedisChannels
 
@@ -16,18 +17,25 @@ def subscriber(redis_client):
 
 
 @pytest.fixture
-def batch(today):
+def sku():
+    # random `sku` so we don't have to manually flush the database for each test
+    return uuid4().hex
+
+
+@pytest.fixture
+def batch(sku, today):
+   # random `ref` so we don't have to manually flush the database for each test
     return {
-        'ref': 'batch',
-        'sku': 'sku',
+        'ref': uuid4().hex,
+        'sku': sku,
         'qty': 10,
         'eta': today.isoformat(),
     }
 
 
 @pytest.fixture
-def line():
-    return {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
+def line(sku):
+    return {'order_id': 'o1', 'sku': sku, 'qty': 10}
 
 
 def test_can_create_batch_via_redis(batch, subscriber, redis_client):
@@ -88,7 +96,7 @@ def test_can_change_batch_quantity_via_redis(batch, line, subscriber, redis_clie
 
     message = receive_message(subscriber)
     assert message['channel'] == RedisChannels.OUT_OF_STOCK
-    assert json.loads(message['data'])['sku'] == 'sku'
+    assert json.loads(message['data'])['sku'] == line['sku']
 
 
 def assert_line_fields_match(line, data):
