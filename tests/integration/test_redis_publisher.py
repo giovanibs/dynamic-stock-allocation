@@ -1,7 +1,5 @@
 import json
 from time import sleep
-from allocation.adapters.redis_publisher import redis_client
-from typing import List, Optional
 import pytest
 from allocation.domain import commands
 from allocation.orchestration.uow import DjangoUoW
@@ -19,7 +17,7 @@ def batch(tomorrow) -> tuple:
 
 
 @pytest.fixture
-def subscriber():
+def subscriber(redis_client):
     return redis_client.pubsub(ignore_subscribe_messages=True)
 
 
