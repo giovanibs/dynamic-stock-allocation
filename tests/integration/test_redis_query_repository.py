@@ -1,4 +1,3 @@
-from time import sleep
 import pytest
 from allocation.adapters.redis_query_repository import RedisQueryRepository
 from allocation.domain import commands
