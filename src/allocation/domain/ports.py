@@ -75,3 +75,8 @@ class AbstractQueryRepository(ABC):
     def get_batch(self, ref: str) -> Batch:
         """"Returns a batch for a given reference"""
         raise NotImplementedError
+    
+
+    def allocation_for_line(self, order_id: str, sku: str) -> str:
+        """Returns the batch reference for a given order line."""
+        raise NotImplementedError

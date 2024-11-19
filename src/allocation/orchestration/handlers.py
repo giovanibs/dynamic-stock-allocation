@@ -62,3 +62,7 @@ def change_batch_quantity(ref_and_qty: commands.ChangeBatchQuantity, uow: Abstra
 def add_batch_to_query_repository(batch_created: events.BatchCreated, *args, **kwargs):
     batch = pickle.dumps(domain_.Batch(**asdict(batch_created)))
     redis_client.hset('batches', batch_created.ref, batch)
+
+
+def add_allocation_to_query_repository(line: events.LineAllocated, *args, **kwargs):
+    redis_client.hset('allocation', f'{line.order_id}--{line.sku}', line.batch_ref)

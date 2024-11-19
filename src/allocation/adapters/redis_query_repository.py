@@ -12,4 +12,8 @@ class RedisQueryRepository(AbstractQueryRepository):
     def get_batch(self, ref: str):
         batch_data = self._client.hget('batches', ref)
         return pickle.loads(batch_data) if batch_data else None
+
+
+    def allocation_for_line(self, order_id: str, sku: str) -> str:
+        return self._client.hget('allocation', f'{order_id}--{sku}')
         
