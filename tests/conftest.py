@@ -1,8 +1,10 @@
 import os
+import subprocess
+from time import sleep
 import pytest
 import redis
-
 from datetime import date, timedelta
+from allocation.entrypoints import redis_consumer
 
 
 @pytest.fixture(scope='session')
@@ -40,3 +42,17 @@ def clear_redis(redis_client):
     redis_client.flushall()
     yield
     redis_client.flushall()
+
+
+@pytest.fixture(scope='module')
+def consumer_process():
+    env = os.environ.copy()
+    env['DJANGO_TEST_DATABASE'] = '1'
+    consumer_relative_path = os.path.relpath(redis_consumer.__file__, os.getcwd())
+    consumer_process = subprocess.Popen(['python', consumer_relative_path], env=env)
+    sleep(1) # a little time for the subprocess to start and migrate the database
+    
+    yield consumer_process
+
+    consumer_process.terminate()
+    consumer_process.wait()

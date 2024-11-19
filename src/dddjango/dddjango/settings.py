@@ -94,7 +94,7 @@ DATABASES = {
     },
 }
 
-if 'test' in sys.argv or 'pytest' in sys.modules:
+if 'test' in sys.argv or 'pytest' in sys.modules or getenv('DJANGO_TEST_DATABASE'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

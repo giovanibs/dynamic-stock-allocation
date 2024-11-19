@@ -1,15 +1,25 @@
 import django
 django.setup()
 
+
+# Ensure tests run correctly by migrating the in-memory database used by the
+# `Consumer` when 'DJANGO_TEST_DATABASE' is set to True.
+import os
+from django.core.management import call_command
+
+if os.getenv('DJANGO_TEST_DATABASE'):
+    call_command('migrate')
+
+
 import json
 import logging
-import os
 import redis
 from typing import Dict
 
 from allocation.domain import commands
 from allocation.orchestration import message_bus
 from allocation.orchestration.uow import DjangoUoW
+from allocation.adapters.redis_channels import RedisChannels
 
 
 logger = logging.getLogger(__name__)

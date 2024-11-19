@@ -1,27 +1,17 @@
 """Tests for guaranteeing the redis consumer does its work."""
 import json
-import subprocess
 from time import sleep
-from allocation.entrypoints import redis_consumer
 import pytest
-import os
+
+
+@pytest.fixture(autouse=True)
+def activate_redis_consumer(consumer_process):
+    return
 
 
 @pytest.fixture
 def subscriber(redis_client):
     return redis_client.pubsub(ignore_subscribe_messages=True)
-
-
-@pytest.fixture(scope='module', autouse=True)
-def consumer_process():
-    consumer_relative_path = os.path.relpath(redis_consumer.__file__, os.getcwd())
-    consumer_process = subprocess.Popen(['python', consumer_relative_path])
-    sleep(0.5) # a little time for the subprocess to start
-    
-    yield consumer_process
-
-    consumer_process.terminate()
-    consumer_process.wait()
 
 
 @pytest.fixture
