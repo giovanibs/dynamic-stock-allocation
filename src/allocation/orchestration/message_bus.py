@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Callable, Dict, List, Type, Union
 from allocation.domain import events, commands
-from allocation.orchestration import handlers, uow
+from allocation.orchestration import handlers, query_handlers, uow
 
 
 class MessageBus:
@@ -20,21 +20,21 @@ class MessageBus:
     EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
         events.BatchCreated : [
             handlers.publish_event,
-            handlers.add_batch_to_query_repository,
+            query_handlers.add_batch,
         ],
         events.BatchQuantityChanged : [
             handlers.publish_event,
-            handlers.update_batch_quantity_in_query_repository,
+            query_handlers.update_batch_quantity,
         ],
         events.LineAllocated: [
             handlers.publish_event,
-            handlers.add_allocation_to_query_repository,
-            handlers.add_order_allocation_to_query_repository,
+            query_handlers.add_allocation,
+            query_handlers.add_order_allocation,
         ],
         events.LineDeallocated : [
             handlers.publish_event,
-            handlers.remove_allocation_from_query_repository,
-            handlers.remove_allocations_for_order_from_query_repository,
+            query_handlers.remove_allocation,
+            query_handlers.remove_allocations_for_order,
         ],
         events.OutOfStock : [handlers.publish_event],
     }
