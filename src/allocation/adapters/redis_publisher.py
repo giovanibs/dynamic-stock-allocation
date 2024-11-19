@@ -1,3 +1,4 @@
+from allocation.adapters.redis_channels import RedisChannels
 from allocation.domain import events
 import dataclasses
 import datetime
@@ -23,11 +24,11 @@ class DateEncoder(json.JSONEncoder):
 class RedisEventPublisher:
     
     CHANNELS: Dict[Type[events.Event], str] = {
-            events.BatchCreated         : 'batch_created',
-            events.BatchQuantityChanged : 'batch_quantity_changed',
-            events.LineAllocated        : 'line_allocated',
-            events.LineDeallocated      : 'line_deallocated',
-            events.OutOfStock           : 'out_of_stock',
+            events.BatchCreated         : RedisChannels.BATCH_CREATED,
+            events.BatchQuantityChanged : RedisChannels.BATCH_QUANTITY_CHANGED,
+            events.LineAllocated        : RedisChannels.LINE_ALLOCATED,
+            events.LineDeallocated      : RedisChannels.LINE_DEALLOCATED,
+            events.OutOfStock           : RedisChannels.OUT_OF_STOCK,
         }
     
     

@@ -37,10 +37,10 @@ REDIS_PORT = os.getenv('REDIS_PORT')
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 CHANNEL_COMMAND_MAP: Dict[str, commands.Command] = {
-        'create_batch'          : commands.CreateBatch,
-        'allocate_line'         : commands.Allocate,
-        'deallocate_line'       : commands.Deallocate,
-        'change_batch_quantity' : commands.ChangeBatchQuantity,
+        RedisChannels.CREATE_BATCH          : commands.CreateBatch,
+        RedisChannels.ALLOCATE_LINE         : commands.Allocate,
+        RedisChannels.DEALLOCATE_LINE       : commands.Deallocate,
+        RedisChannels.CHANGE_BATCH_QUANTITY : commands.ChangeBatchQuantity,
     }
 
 

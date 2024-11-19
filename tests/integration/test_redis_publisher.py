@@ -1,6 +1,7 @@
 import json
 from time import sleep
 import pytest
+from allocation.adapters.redis_channels import RedisChannels
 from allocation.domain import commands
 from allocation.orchestration.uow import DjangoUoW
 from allocation.orchestration.message_bus import MessageBus
@@ -25,10 +26,10 @@ class TestRedisPublishesEvents:
 
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_batch_created(self, subscriber, batch, uow):
-        subscriber.subscribe('batch_created')
+        subscriber.subscribe(RedisChannels.BATCH_CREATED)
         MessageBus.handle(commands.CreateBatch(*batch), uow)
         message = self.receive_message(subscriber)
-        assert message['channel'] == 'batch_created'
+        assert message['channel'] == RedisChannels.BATCH_CREATED
         assert json.loads(message['data'])['ref'] == batch[0]
         assert json.loads(message['data'])['sku'] == batch[1]
         assert json.loads(message['data'])['qty'] == batch[2]
@@ -37,12 +38,12 @@ class TestRedisPublishesEvents:
         
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_line_allocated(self, subscriber, batch, uow):
-        subscriber.subscribe('line_allocated')
+        subscriber.subscribe(RedisChannels.LINE_ALLOCATED)
         line = ('o1', 'skew', 1)
         MessageBus.handle(commands.CreateBatch(*batch), uow)
         MessageBus.handle(commands.Allocate(*line), uow)
         message = self.receive_message(subscriber)
-        assert message['channel'] == 'line_allocated'
+        assert message['channel'] == RedisChannels.LINE_ALLOCATED
         assert json.loads(message['data'])['order_id'] == line[0]
         assert json.loads(message['data'])['sku'] == line[1]
         assert json.loads(message['data'])['qty'] == line[2]
@@ -51,13 +52,13 @@ class TestRedisPublishesEvents:
 
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_line_deallocated(self, subscriber, batch, uow):
-        subscriber.subscribe('line_deallocated')
+        subscriber.subscribe(RedisChannels.LINE_DEALLOCATED)
         line = ('o1', 'skew', 1)
         MessageBus.handle(commands.CreateBatch(*batch), uow)
         MessageBus.handle(commands.Allocate(*line), uow)
         MessageBus.handle(commands.Deallocate(*line), uow)
         message = self.receive_message(subscriber)
-        assert message['channel'] == 'line_deallocated'
+        assert message['channel'] == RedisChannels.LINE_DEALLOCATED
         assert json.loads(message['data'])['order_id'] == line[0]
         assert json.loads(message['data'])['sku'] == line[1]
         assert json.loads(message['data'])['qty'] == line[2]
@@ -65,24 +66,24 @@ class TestRedisPublishesEvents:
 
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_out_of_stock(self, subscriber, batch, uow):
-        subscriber.subscribe('out_of_stock')
+        subscriber.subscribe(RedisChannels.OUT_OF_STOCK)
         line = ('o1', 'skew', batch[2] + 1)
         MessageBus.handle(commands.CreateBatch(*batch), uow)
         MessageBus.handle(commands.Allocate(*line), uow)
         message = self.receive_message(subscriber)
-        assert message['channel'] == 'out_of_stock'
+        assert message['channel'] == RedisChannels.OUT_OF_STOCK
         assert json.loads(message['data'])['sku'] == 'skew'
 
     
     @pytest.mark.django_db(transaction=True)
     def test_redis_publishes_batch_changed(self, subscriber, batch, uow):
-        subscriber.subscribe('batch_quantity_changed')
+        subscriber.subscribe(RedisChannels.BATCH_QUANTITY_CHANGED)
         line = ('o1', 'skew', batch[2])
         MessageBus.handle(commands.CreateBatch(*batch), uow)
         MessageBus.handle(commands.Allocate(*line), uow)
         MessageBus.handle(commands.ChangeBatchQuantity(batch[0], batch[2] - 1), uow)
         message = self.receive_message(subscriber)
-        assert message['channel'] == 'batch_quantity_changed'
+        assert message['channel'] == RedisChannels.BATCH_QUANTITY_CHANGED
         assert json.loads(message['data'])['ref'] == batch[0]
         assert json.loads(message['data'])['qty'] == batch[2] - 1
 
