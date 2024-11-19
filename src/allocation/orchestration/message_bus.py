@@ -28,7 +28,10 @@ class MessageBus:
             handlers.add_allocation_to_query_repository,
             handlers.add_order_allocation_to_query_repository,
         ],
-        events.LineDeallocated : [handlers.publish_event],
+        events.LineDeallocated : [
+            handlers.publish_event,
+            handlers.remove_allocation_from_query_repository,
+        ],
         events.OutOfStock : [handlers.publish_event],
     }
 

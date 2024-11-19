@@ -84,3 +84,7 @@ def add_order_allocation_to_query_repository(line: events.LineAllocated, *args, 
         allocations.append(new_allocation)
     
     redis_client.hset('order_allocations', line.order_id, pickle.dumps(allocations))
+
+
+def remove_allocation_from_query_repository(line: events.LineDeallocated, *args, **kwargs):
+    redis_client.hdel('allocation', f'{line.order_id}--{line.sku}')
