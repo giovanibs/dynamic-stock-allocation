@@ -5,6 +5,8 @@ import pytest
 import redis
 from datetime import date, timedelta
 from allocation.entrypoints import redis_consumer
+from allocation.orchestration.message_bus import MessageBus
+from allocation.orchestration.uow import DjangoUoW
 
 
 @pytest.fixture(scope='session')
@@ -56,3 +58,13 @@ def consumer_process():
 
     consumer_process.terminate()
     consumer_process.wait()
+
+
+@pytest.fixture(scope='session')
+def bus():
+    return MessageBus
+
+
+@pytest.fixture(scope='function')
+def django_uow():
+    return DjangoUoW()

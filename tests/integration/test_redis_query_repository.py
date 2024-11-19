@@ -1,13 +1,7 @@
-import json
 from time import sleep
 import pytest
-from allocation.adapters.redis_channels import RedisChannels as channels
 from allocation.adapters.redis_query_repository import RedisQueryRepository
-
-
-@pytest.fixture(autouse=True)
-def activate_redis_consumer(consumer_process):
-    return
+from allocation.domain import commands
 
 
 @pytest.fixture
@@ -15,14 +9,10 @@ def redis_repo(redis_host, redis_port):
     return RedisQueryRepository(redis_host, redis_port)
 
 
-def test_can_query_batch_by_ref(today, redis_client, redis_repo):
-    batch = {
-        'ref': 'batch',
-        'sku': 'sku',
-        'qty': 10,
-        'eta': today.isoformat(),
-    }
-    redis_client.publish(channel=channels.CREATE_BATCH, message=json.dumps(batch))
+@pytest.mark.django_db(transaction=True)
+def test_can_query_batch_by_ref(today, redis_repo, bus, django_uow):
+    batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
+    bus.handle(commands.CreateBatch(**batch), django_uow)
     
     retries = 5
     while retries:
@@ -40,16 +30,12 @@ def test_can_query_batch_by_ref(today, redis_client, redis_repo):
     assert retrieved_batch.eta == batch['eta']
 
 
-def test_can_query_batch_ref_for_allocation(today, redis_client, redis_repo):
-    batch = {
-        'ref': 'batch',
-        'sku': 'sku',
-        'qty': 10,
-        'eta': today.isoformat(),
-    }
+@pytest.mark.django_db(transaction=True)
+def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
+    batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     line = {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
-    redis_client.publish(channel=channels.CREATE_BATCH, message=json.dumps(batch))
-    redis_client.publish(channel=channels.ALLOCATE_LINE, message=json.dumps(line))
+    bus.handle(commands.CreateBatch(**batch), django_uow)
+    bus.handle(commands.Allocate(**line), django_uow)
     
     retries = 5
     while retries:
