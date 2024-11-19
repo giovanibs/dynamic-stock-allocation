@@ -1,11 +1,10 @@
-import os
+from allocation.config import get_redis_config
 from allocation.domain import events
 from allocation.adapters.redis_query_repository import RedisQueryRepository
-import redis
 
 
-redis_client = redis.Redis(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
-redis_repo = RedisQueryRepository(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
+redis_config = get_redis_config()
+redis_repo = RedisQueryRepository(redis_config[0], redis_config[1])
 
 
 def add_batch(batch: events.BatchCreated, *args, **kwargs):

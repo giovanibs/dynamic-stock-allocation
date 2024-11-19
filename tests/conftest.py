@@ -4,6 +4,7 @@ from time import sleep
 import pytest
 import redis
 from datetime import date, timedelta
+from allocation.config import get_redis_config
 from allocation.entrypoints import redis_consumer
 from allocation.orchestration.message_bus import MessageBus
 from allocation.orchestration.uow import DjangoUoW
@@ -26,12 +27,12 @@ def later(today):
 
 @pytest.fixture(scope="session")
 def redis_host():
-    return os.getenv('REDIS_HOST')
+    return get_redis_config()[0]
 
 
 @pytest.fixture(scope="session")
 def redis_port():
-    return os.getenv('REDIS_PORT')
+    return get_redis_config()[1]
 
 
 @pytest.fixture(scope="session")

@@ -1,5 +1,6 @@
 from dataclasses import astuple
 import os
+from allocation.config import get_redis_config
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
@@ -7,7 +8,8 @@ from allocation.adapters.redis_publisher import RedisEventPublisher
 import redis
 
 
-redis_client = redis.Redis(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
+redis_config = get_redis_config()
+redis_client = redis.Redis(redis_config[0], redis_config[1])
 
 
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):

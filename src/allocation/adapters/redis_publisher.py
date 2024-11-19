@@ -1,16 +1,15 @@
 from allocation.adapters.redis_channels import RedisChannels
+from allocation.config import get_redis_config
 from allocation.domain import events
 import dataclasses
 import datetime
 import json
-import os
 import redis
 from typing import Dict, Type
 
 
-REDIS_HOST = os.getenv('REDIS_HOST')
-REDIS_PORT = os.getenv('REDIS_PORT')
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+redis_config = get_redis_config()
+redis_client = redis.Redis(redis_config[0], redis_config[1], decode_responses=True)
 
 
 class DateEncoder(json.JSONEncoder):
