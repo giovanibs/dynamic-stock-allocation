@@ -56,3 +56,7 @@ def change_batch_quantity(ref_and_qty: commands.ChangeBatchQuantity, uow: Abstra
         uow.commit()
 
     return ref_and_qty.ref, ref_and_qty.qty
+
+
+def add_batch_to_query_repository(batch: events.BatchCreated, *args, **kwargs):
+    redis_client.hmset(f'batch:{batch.ref}', asdict(batch))

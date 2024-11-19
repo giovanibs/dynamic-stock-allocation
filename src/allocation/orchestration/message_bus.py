@@ -18,7 +18,10 @@ class MessageBus:
     }
 
     EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
-        events.BatchCreated         : [handlers.publish_event],
+        events.BatchCreated         : [
+            handlers.publish_event,
+            handlers.add_batch_to_query_repository,
+        ],
         events.BatchQuantityChanged : [handlers.publish_event],
         events.LineAllocated        : [handlers.publish_event],
         events.LineDeallocated      : [handlers.publish_event],

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Set
+from typing import List, Set, Tuple
 
-from allocation.domain.model import Product
+from allocation.domain.model import Batch, Product
 
 
 class AbstractWriteRepository(ABC):
@@ -67,3 +67,11 @@ class AbstractWriteRepository(ABC):
     @abstractmethod
     def _get_by_batch_ref(self, ref):
         raise NotImplemented
+
+
+class AbstractQueryRepository(ABC):
+
+    @abstractmethod
+    def get_batch(self, ref: str) -> Batch:
+        """"Returns a batch for a given reference"""
+        raise NotImplementedError
