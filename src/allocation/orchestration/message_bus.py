@@ -24,7 +24,7 @@ class MessageBus:
         ],
         events.BatchQuantityChanged : [
             handlers.publish_event,
-            handlers.update_batch_in_query_repository,
+            handlers.update_batch_quantity_in_query_repository,
         ],
         events.LineAllocated: [
             handlers.publish_event,

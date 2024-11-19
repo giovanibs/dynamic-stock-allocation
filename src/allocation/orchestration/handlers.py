@@ -1,14 +1,15 @@
-from dataclasses import asdict, astuple
+from dataclasses import astuple
 import os
-import pickle
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
 from allocation.adapters.redis_publisher import RedisEventPublisher
+from allocation.adapters.redis_query_repository import RedisQueryRepository
 import redis
 
 
 redis_client = redis.Redis(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
+redis_repo = RedisQueryRepository(os.getenv('REDIS_HOST'), os.getenv('REDIS_PORT'))
 
 
 def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
@@ -64,41 +65,26 @@ def change_batch_quantity(ref_and_qty: commands.ChangeBatchQuantity, uow: Abstra
     return ref_and_qty.ref, ref_and_qty.qty
 
 
-def add_batch_to_query_repository(batch_created: events.BatchCreated, *args, **kwargs):
-    batch = pickle.dumps(domain_.Batch(**asdict(batch_created)))
-    redis_client.hset('batches', batch_created.ref, batch)
+def add_batch_to_query_repository(batch: events.BatchCreated, *args, **kwargs):
+    redis_repo.add_batch(batch.ref, batch.sku, batch.qty, batch.eta)
 
 
 def add_allocation_to_query_repository(line: events.LineAllocated, *args, **kwargs):
-    redis_client.hset('allocation', f'{line.order_id}--{line.sku}', line.batch_ref)
+    redis_repo.add_allocation_for_line(line.order_id, line.sku, line.batch_ref)
 
 
 def add_order_allocation_to_query_repository(line: events.LineAllocated, *args, **kwargs):
-    new_allocation = {line.sku: line.batch_ref}
-    allocations = redis_client.hget('order_allocations', line.order_id)
-
-    if allocations is None:
-        allocations = [new_allocation]
-    else:
-        allocations = pickle.loads(allocations)
-        allocations.append(new_allocation)
-    
-    redis_client.hset('order_allocations', line.order_id, pickle.dumps(allocations))
+    redis_repo.add_allocation_for_order(line.order_id, line.sku, line.batch_ref)
 
 
 def remove_allocation_from_query_repository(line: events.LineDeallocated, *args, **kwargs):
-    redis_client.hdel('allocation', f'{line.order_id}--{line.sku}')
+    redis_repo.remove_allocation_for_line(line.order_id, line.sku)
 
 
 def remove_allocations_for_order_from_query_repository(line: events.LineDeallocated, *args, **kwargs):
-    allocations = pickle.loads(redis_client.hget('order_allocations', line.order_id))
-    allocations = [a for a in allocations if line.sku not in a]
-    redis_client.hset('order_allocations', line.order_id, pickle.dumps(allocations))
+    redis_repo.remove_allocation_for_order(line.order_id, line.sku)
 
 
-def update_batch_in_query_repository(changed_batch: events.BatchQuantityChanged, *args, **kwargs):
-    domain_batch = pickle.loads(redis_client.hget('batches', changed_batch.ref))
-    batch_dict = domain_batch.properties_dict
-    batch_dict['qty'] = changed_batch.qty
-    serialized_batch = pickle.dumps(domain_.Batch(**batch_dict))
-    redis_client.hset('batches', batch_dict['ref'], serialized_batch)
+def update_batch_quantity_in_query_repository(batch: events.BatchQuantityChanged, *args, **kwargs):
+    redis_repo.update_batch_quantity(batch.ref, batch.qty)
+    

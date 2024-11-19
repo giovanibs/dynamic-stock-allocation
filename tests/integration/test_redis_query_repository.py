@@ -28,7 +28,7 @@ def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
     bus.handle(commands.CreateBatch(**batch), django_uow)
     bus.handle(commands.Allocate(**line), django_uow)
     
-    batch_ref = redis_repo.allocation_for_line(line['order_id'], line['sku'])
+    batch_ref = redis_repo.get_allocation_for_line(line['order_id'], line['sku'])
     
     assert batch_ref.decode() == batch['ref']
 
@@ -49,7 +49,7 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
     bus.handle(commands.Allocate(*line2), django_uow)
     bus.handle(commands.Allocate(*line3), django_uow)
     
-    allocations = redis_repo.allocations_for_order(order_id)
+    allocations = redis_repo.get_allocations_for_order(order_id)
     
     assert allocations == [
                             {'sku1': 'batch1'},
@@ -68,11 +68,11 @@ def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus, django_uow):
     bus.handle(commands.Allocate(**line2), django_uow)
     bus.handle(commands.Deallocate(**line1), django_uow)
     
-    line1_batch_ref = redis_repo.allocation_for_line(line1['order_id'], line1['sku'])
+    line1_batch_ref = redis_repo.get_allocation_for_line(line1['order_id'], line1['sku'])
     
     assert line1_batch_ref == None
 
-    line2_batch_ref = redis_repo.allocation_for_line(line2['order_id'], line2['sku'])
+    line2_batch_ref = redis_repo.get_allocation_for_line(line2['order_id'], line2['sku'])
     
     assert line2_batch_ref.decode() == 'batch'
 
@@ -94,7 +94,7 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, djang
     bus.handle(commands.Allocate(*line3), django_uow)
     bus.handle(commands.Deallocate(*line2), django_uow)
     
-    allocations = redis_repo.allocations_for_order(order_id)
+    allocations = redis_repo.get_allocations_for_order(order_id)
     
     assert allocations == [
                             {'sku1': 'batch1'},

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set
+from datetime import date
+from typing import Dict, List, Optional, Set
 
 from allocation.domain.model import Batch, Product
 
@@ -72,16 +73,48 @@ class AbstractWriteRepository(ABC):
 class AbstractQueryRepository(ABC):
 
     @abstractmethod
+    def add_batch(self, ref: str, sku: str, qty: int, eta: Optional[date] = None):
+        raise NotImplementedError
+
+
+    @abstractmethod
     def get_batch(self, ref: str) -> Batch:
         """"Returns a batch for a given reference"""
         raise NotImplementedError
     
+    
+    @abstractmethod
+    def update_batch_quantity(self, ref: str, qty: int):
+        raise NotImplementedError
 
-    def allocation_for_line(self, order_id: str, sku: str) -> str:
+
+    @abstractmethod
+    def add_allocation_for_line(self, order_id, sku, batch_ref):
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def get_allocation_for_line(self, order_id: str, sku: str) -> str:
         """Returns the batch reference for a given order line."""
         raise NotImplementedError
 
 
-    def allocations_for_order(self, order_id: str) -> List[Dict[str, str]]:
+    @abstractmethod
+    def remove_allocation_for_line(self, order_id, sku):
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def add_allocation_for_order(self, order_id, sku, batch_ref):
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def get_allocations_for_order(self, order_id: str):
         """Returns a list of mappings `sku: batch_ref` for a given `order_id`"""
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def remove_allocation_for_order(self, order_id, sku):
         raise NotImplementedError
