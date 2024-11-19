@@ -30,7 +30,6 @@ def line():
     return {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_create_batch_via_redis(batch, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.BATCH_CREATED)
     json_batch = json.dumps(batch)
@@ -39,7 +38,6 @@ def test_can_create_batch_via_redis(batch, subscriber, redis_client):
     assert created_message['data'] == json_batch
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_allocate_a_line_via_redis(batch, line, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.LINE_ALLOCATED)
     json_batch = json.dumps(batch)
@@ -52,7 +50,6 @@ def test_can_allocate_a_line_via_redis(batch, line, subscriber, redis_client):
     assert data['batch_ref'] == batch['ref']
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_deallocate_a_line_via_redis(batch, line, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.LINE_DEALLOCATED)
     json_batch = json.dumps(batch)
@@ -65,7 +62,6 @@ def test_can_deallocate_a_line_via_redis(batch, line, subscriber, redis_client):
     assert_line_fields_match(line, data)
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_change_batch_quantity_via_redis(batch, line, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.LINE_DEALLOCATED)
     subscriber.subscribe(RedisChannels.OUT_OF_STOCK)

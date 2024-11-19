@@ -15,7 +15,6 @@ def redis_repo(redis_host, redis_port):
     return RedisQueryRepository(redis_host, redis_port)
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_query_batch_by_ref(today, redis_client, redis_repo):
     batch = {
         'ref': 'batch',
@@ -41,7 +40,6 @@ def test_can_query_batch_by_ref(today, redis_client, redis_repo):
     assert retrieved_batch.eta == batch['eta']
 
 
-@pytest.mark.django_db(transaction=True)
 def test_can_query_batch_ref_for_allocation(today, redis_client, redis_repo):
     batch = {
         'ref': 'batch',
