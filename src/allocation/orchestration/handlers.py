@@ -1,4 +1,5 @@
 from dataclasses import asdict, astuple
+import pickle
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
@@ -58,5 +59,6 @@ def change_batch_quantity(ref_and_qty: commands.ChangeBatchQuantity, uow: Abstra
     return ref_and_qty.ref, ref_and_qty.qty
 
 
-def add_batch_to_query_repository(batch: events.BatchCreated, *args, **kwargs):
-    redis_client.hmset(f'batch:{batch.ref}', asdict(batch))
+def add_batch_to_query_repository(batch_created: events.BatchCreated, *args, **kwargs):
+    batch = pickle.dumps(domain_.Batch(**asdict(batch_created)))
+    redis_client.hset('batches', batch_created.ref, batch)
