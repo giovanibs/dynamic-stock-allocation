@@ -40,13 +40,6 @@ def redis_client(redis_host, redis_port):
     yield redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
 
 
-@pytest.fixture(scope="function", autouse=True)
-def clear_redis(redis_client):
-    redis_client.flushall()
-    yield
-    redis_client.flushall()
-
-
 @pytest.fixture(scope='module')
 def consumer_process():
     env = os.environ.copy()

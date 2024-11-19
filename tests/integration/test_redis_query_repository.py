@@ -8,6 +8,13 @@ def redis_repo(redis_host, redis_port):
     return RedisQueryRepository(redis_host, redis_port)
 
 
+@pytest.fixture(scope="function", autouse=True)
+def clear_redis(redis_client):
+    redis_client.flushall()
+    yield
+    redis_client.flushall()
+
+
 @pytest.mark.django_db(transaction=True)
 def test_can_query_batch_by_ref(today, redis_repo, bus, django_uow):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
