@@ -14,15 +14,7 @@ def test_can_query_batch_by_ref(today, redis_repo, bus, django_uow):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     bus.handle(commands.CreateBatch(**batch), django_uow)
     
-    retries = 5
-    while retries:
-        retrieved_batch = redis_repo.get_batch(batch['ref'])
-
-        if retrieved_batch:
-            break
-
-        sleep(0.5)
-        retries -= 1
+    retrieved_batch = query_from_redis(redis_repo.get_batch, batch['ref'])
     
     assert retrieved_batch.ref == batch['ref']
     assert retrieved_batch.sku == batch['sku']
@@ -37,15 +29,8 @@ def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
     bus.handle(commands.CreateBatch(**batch), django_uow)
     bus.handle(commands.Allocate(**line), django_uow)
     
-    retries = 5
-    while retries:
-        batch_ref = redis_repo.allocation_for_line(line['order_id'], line['sku'])
-
-        if batch_ref:
-            break
-
-        sleep(0.5)
-        retries -= 1
+    batch_ref = query_from_redis(
+        redis_repo.allocation_for_line, line['order_id'], line['sku'])
     
     assert batch_ref.decode() == batch['ref']
 
@@ -66,15 +51,7 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
     bus.handle(commands.Allocate(*line2), django_uow)
     bus.handle(commands.Allocate(*line3), django_uow)
     
-    retries = 5
-    while retries:
-        allocations = redis_repo.allocations_for_order(order_id)
-
-        if allocations:
-            break
-
-        sleep(0.5)
-        retries -= 1
+    allocations = query_from_redis(redis_repo.allocations_for_order, order_id)
     
     assert allocations == [
                             {'sku1': 'batch1'},
