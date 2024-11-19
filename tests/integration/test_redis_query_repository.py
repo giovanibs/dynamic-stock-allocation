@@ -106,6 +106,19 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, djang
                           ]
 
 
+@pytest.mark.django_db(transaction=True)
+def test_changing_batch_quantity_updates_batch(today, redis_repo, bus, django_uow):
+    batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
+    bus.handle(commands.CreateBatch(**batch), django_uow)
+    
+    retrieved_batch = query_from_redis(redis_repo.get_batch, batch['ref'])
+    assert retrieved_batch.qty == batch['qty']
+    
+    bus.handle(commands.ChangeBatchQuantity(batch['ref'], 5), django_uow)
+    retrieved_batch = query_from_redis(redis_repo.get_batch, batch['ref'])
+    assert retrieved_batch.qty == 5
+
+
 def query_from_redis(query_type, *args):
     retries = 5
     while retries:

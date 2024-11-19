@@ -22,7 +22,10 @@ class MessageBus:
             handlers.publish_event,
             handlers.add_batch_to_query_repository,
         ],
-        events.BatchQuantityChanged : [handlers.publish_event],
+        events.BatchQuantityChanged : [
+            handlers.publish_event,
+            handlers.update_batch_in_query_repository,
+        ],
         events.LineAllocated: [
             handlers.publish_event,
             handlers.add_allocation_to_query_repository,

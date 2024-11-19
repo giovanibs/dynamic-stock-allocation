@@ -94,3 +94,11 @@ def remove_allocations_for_order_from_query_repository(line: events.LineDealloca
     allocations = pickle.loads(redis_client.hget('order_allocations', line.order_id))
     allocations = [a for a in allocations if line.sku not in a]
     redis_client.hset('order_allocations', line.order_id, pickle.dumps(allocations))
+
+
+def update_batch_in_query_repository(changed_batch: events.BatchQuantityChanged, *args, **kwargs):
+    domain_batch = pickle.loads(redis_client.hget('batches', changed_batch.ref))
+    batch_dict = domain_batch.properties_dict
+    batch_dict['qty'] = changed_batch.qty
+    serialized_batch = pickle.dumps(domain_.Batch(**batch_dict))
+    redis_client.hset('batches', batch_dict['ref'], serialized_batch)
