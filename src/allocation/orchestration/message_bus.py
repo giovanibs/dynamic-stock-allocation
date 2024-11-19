@@ -31,6 +31,7 @@ class MessageBus:
         events.LineDeallocated : [
             handlers.publish_event,
             handlers.remove_allocation_from_query_repository,
+            handlers.remove_allocations_for_order_from_query_repository,
         ],
         events.OutOfStock : [handlers.publish_event],
     }

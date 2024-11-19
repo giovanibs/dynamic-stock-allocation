@@ -81,6 +81,31 @@ def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus, django_uow):
     assert line2_batch_ref.decode() == 'batch'
 
 
+@pytest.mark.django_db(transaction=True)
+def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, django_uow):
+    order_id = 'order1'
+    batch1 =  ('batch1', 'sku1', 10, tomorrow)
+    batch2 =  ('batch2', 'sku2', 10, tomorrow)
+    batch3 =  ('batch3', 'sku3', 10, tomorrow)
+    line1 =  (order_id, 'sku1', 10)
+    line2 =  (order_id, 'sku2', 10)
+    line3 =  (order_id, 'sku3', 10)
+    bus.handle(commands.CreateBatch(*batch1), django_uow)
+    bus.handle(commands.CreateBatch(*batch2), django_uow)
+    bus.handle(commands.CreateBatch(*batch3), django_uow)
+    bus.handle(commands.Allocate(*line1), django_uow)
+    bus.handle(commands.Allocate(*line2), django_uow)
+    bus.handle(commands.Allocate(*line3), django_uow)
+    bus.handle(commands.Deallocate(*line2), django_uow)
+    
+    allocations = query_from_redis(redis_repo.allocations_for_order, order_id)
+    
+    assert allocations == [
+                            {'sku1': 'batch1'},
+                            {'sku3': 'batch3'},
+                          ]
+
+
 def query_from_redis(query_type, *args):
     retries = 5
     while retries:
