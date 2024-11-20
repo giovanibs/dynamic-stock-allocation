@@ -4,11 +4,12 @@ from allocation.domain import commands, events
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.domain.model import Product
 from allocation.domain.ports import AbstractPublisher, AbstractQueryRepository, AbstractWriteRepository
+from allocation.orchestration import bootstrapper
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
 
 
-class FakeProductRepository(AbstractWriteRepository):
+class FakeWriteRepository(AbstractWriteRepository):
 
         def __init__(self, products: Optional[List[Product]] = None) -> None:
             super().__init__()
@@ -73,12 +74,8 @@ class FakeProductUoW(AbstractUnitOfWork):
         def __init__(
                 self,
                 repo: AbstractWriteRepository,
-                query_repo: AbstractQueryRepository,
-                publisher: AbstractPublisher
         ) -> None:
             self._products = repo
-            self._querier = query_repo
-            self._publisher = publisher
             self._commited = False
             self.collected_messages = []
 
@@ -93,16 +90,6 @@ class FakeProductUoW(AbstractUnitOfWork):
             return self._products
         
         
-        @property
-        def querier(self) -> AbstractWriteRepository:
-            return self._querier
-
-
-        @property
-        def publisher(self) -> AbstractWriteRepository:
-            return self._publisher
-        
-
         def __enter__(self) -> AbstractUnitOfWork:
             self._commited = False
             return super().__enter__()
@@ -132,7 +119,16 @@ class FakeProductUoW(AbstractUnitOfWork):
 
 @pytest.fixture
 def uow():
-    return FakeProductUoW(FakeProductRepository(), FakeQueryRepo(), FakePublisher())
+    return FakeProductUoW(FakeWriteRepository())
+
+
+@pytest.fixture
+def bus(uow):
+    return bootstrapper.bootstrap(
+        uow=uow,
+        publisher=FakePublisher(),
+        query_repository=FakeQueryRepo()
+    )
 
 
 @pytest.fixture
@@ -143,7 +139,7 @@ def batch(tomorrow):
 class TestOrchestrationAddBatch:
 
     def test_can_add_a_batch(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         product = uow.products.get(batch[1])
         assert batch[0] in {b.ref for b in product.batches}
         assert uow.commited
@@ -153,7 +149,7 @@ class TestOrchestrationAddBatch:
         with pytest.raises(InexistentProduct):
             uow.products.get(batch[1])
 
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         product = uow.products.get(batch[1])
         assert batch[0] in {b.ref for b in product.batches}
 
@@ -161,151 +157,151 @@ class TestOrchestrationAddBatch:
 class TestOrchestrationAllocate:
 
     def test_allocate_commits_on_happy_path(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         line = ('o1', 'skew', 1)
         
-        bus.handle(commands.Allocate(*line), uow)
+        bus.handle(commands.Allocate(*line))
         assert uow.commited == True
 
 
     def test_allocate_does_not_commit_on_error(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         line_with_greater_qty = ('o2', 'skew', 11)
         try:
-            bus.handle(commands.Allocate(*line_with_invalid_sku), uow)
+            bus.handle(commands.Allocate(*line_with_invalid_sku))
         except InexistentProduct:
             pass
         
         assert uow.commited == False
 
-        results = bus.handle(commands.Allocate(*line_with_greater_qty), uow)
+        results = bus.handle(commands.Allocate(*line_with_greater_qty))
         
         assert results[-1] == 'OutOfStock'
         assert uow.commited == False
 
 
-    def test_allocate_returns_batch_ref(self, today, later, uow, bus):
+    def test_allocate_returns_batch_ref(self, today, later, bus):
         earlier_batch = ('earlier', 'skew', 10, today)
         later_batch = ('later', 'skew', 10, later)
-        bus.handle(commands.CreateBatch(*earlier_batch), uow)
-        bus.handle(commands.CreateBatch(*later_batch), uow)
+        bus.handle(commands.CreateBatch(*earlier_batch))
+        bus.handle(commands.CreateBatch(*later_batch))
         line = ('o1', 'skew', 1)
         
-        results = bus.handle(commands.Allocate(*line), uow)
+        results = bus.handle(commands.Allocate(*line))
         assert results[-1] == earlier_batch[0]
     
 
     def test_allocate_decreases_the_available_qty(self, uow, bus):
-        bus.handle(commands.CreateBatch('batch', 'skew', 10), uow)
+        bus.handle(commands.CreateBatch('batch', 'skew', 10))
         line = ('o1', 'skew', 10)
-        bus.handle(commands.Allocate(*line), uow)
+        bus.handle(commands.Allocate(*line))
         assert uow.products.get(sku='skew').batches[0].available_qty == 0
 
 
-    def test_allocate_raises_error_for_invalid_sku(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+    def test_allocate_raises_error_for_invalid_sku(self, batch, bus):
+        bus.handle(commands.CreateBatch(*batch))
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
         with pytest.raises(InexistentProduct):
-            bus.handle(commands.Allocate(*line_with_invalid_sku), uow)
+            bus.handle(commands.Allocate(*line_with_invalid_sku))
 
 
     def test_allocate_raises_event_for_overallocation(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         line_with_greater_qty = ('o2', 'skew', 11)
-        bus.handle(commands.Allocate(*line_with_greater_qty), uow)
+        bus.handle(commands.Allocate(*line_with_greater_qty))
         
         assert events.OutOfStock in {type(event) for event in uow.collected_messages}
 
 
 class TestOrchestrationDeallocate:
 
-    def test_deallocate_returns_batch_ref(self, uow, bus):
+    def test_deallocate_returns_batch_ref(self, bus):
         batch_with_the_line = ('it_is_me', 'skew', 10, None)
         batch_without_the_line = ('it_is_not_me', 'skew', 1, None)
-        bus.handle(commands.CreateBatch(*batch_with_the_line), uow)
-        bus.handle(commands.CreateBatch(*batch_without_the_line), uow)
+        bus.handle(commands.CreateBatch(*batch_with_the_line))
+        bus.handle(commands.CreateBatch(*batch_without_the_line))
         line = ('o1', 'skew', 10)
-        bus.handle(commands.Allocate(*line), uow)
-        results = bus.handle(commands.Deallocate(*line), uow)
+        bus.handle(commands.Allocate(*line))
+        results = bus.handle(commands.Deallocate(*line))
         assert results[0] == batch_with_the_line[0]
     
 
     def test_deallocate_decreases_the_allocated_qty(self, uow, bus):
-        bus.handle(commands.CreateBatch('batch', 'skew', 10), uow)
+        bus.handle(commands.CreateBatch('batch', 'skew', 10))
         line = ('o1', 'skew', 10)
-        bus.handle(commands.Allocate(*line), uow)
-        bus.handle(commands.Deallocate(*line), uow)
+        bus.handle(commands.Allocate(*line))
+        bus.handle(commands.Deallocate(*line))
         
         assert uow.products.get(sku='skew').batches[0].allocated_qty == 0
 
 
     def test_deallocate_commits_on_happy_path(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         line = ('o1', 'skew', 1)
-        bus.handle(commands.Allocate(*line), uow)
+        bus.handle(commands.Allocate(*line))
         
-        bus.handle(commands.Deallocate(*line), uow)
+        bus.handle(commands.Deallocate(*line))
         assert uow.commited == True
 
 
     def test_deallocate_does_not_commit_on_error(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+        bus.handle(commands.CreateBatch(*batch))
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         line_not_allocated = ('o2', 'skew', 1)
         
         try:
-            bus.handle(commands.Deallocate(*line_with_invalid_sku), uow)
+            bus.handle(commands.Deallocate(*line_with_invalid_sku))
         except InexistentProduct:
             pass
         
         assert uow.commited == False
 
         try:
-            bus.handle(commands.Deallocate(*line_not_allocated), uow)
+            bus.handle(commands.Deallocate(*line_not_allocated))
         except LineIsNotAllocatedError:
             pass
 
         assert uow.commited == False
 
 
-    def test_deallocate_raises_error_for_invalid_sku(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+    def test_deallocate_raises_error_for_invalid_sku(self, batch, bus):
+        bus.handle(commands.CreateBatch(*batch))
         line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
         with pytest.raises(InexistentProduct):
-            bus.handle(commands.Deallocate(*line_with_invalid_sku), uow)
+            bus.handle(commands.Deallocate(*line_with_invalid_sku))
 
 
-    def test_deallocate_raises_error_for_not_allocated_line(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch), uow)
+    def test_deallocate_raises_error_for_not_allocated_line(self, batch, bus):
+        bus.handle(commands.CreateBatch(*batch))
         line_not_allocated = ('o2', 'skew', 1)
         
         with pytest.raises(LineIsNotAllocatedError):
-            bus.handle(commands.Deallocate(*line_not_allocated), uow)
+            bus.handle(commands.Deallocate(*line_not_allocated))
 
 
 class TestOrchestrationChangeBatchQuantity:
 
     def test_can_change_batch_qty(self, uow, tomorrow, bus):
-        bus.handle(commands.CreateBatch('batch', 'sku', 10, tomorrow), uow)
-        bus.handle(commands.ChangeBatchQuantity('batch', 5), uow)
+        bus.handle(commands.CreateBatch('batch', 'sku', 10, tomorrow))
+        bus.handle(commands.ChangeBatchQuantity('batch', 5))
         [batch] = uow.products.get(sku='sku').batches
 
         assert batch.available_qty == 5
 
 
     def test_change_batch_qty_reallocates_when_necessary(self, uow, tomorrow, bus):
-        bus.handle(commands.CreateBatch('batch1', 'sku', 10, None), uow)
-        bus.handle(commands.CreateBatch('batch2', 'sku', 10, tomorrow), uow)
-        bus.handle(commands.Allocate('o1', 'sku', 10), uow)
+        bus.handle(commands.CreateBatch('batch1', 'sku', 10, None))
+        bus.handle(commands.CreateBatch('batch2', 'sku', 10, tomorrow))
+        bus.handle(commands.Allocate('o1', 'sku', 10))
         
         product = uow.products.get_by_batch_ref('batch1')
         batch1 = next(b for b in product.batches if b.ref == 'batch1')
         assert batch1.allocated_qty == 10
         
-        bus.handle(commands.ChangeBatchQuantity('batch1', 5), uow)
+        bus.handle(commands.ChangeBatchQuantity('batch1', 5))
         
         batch1 = next(b for b in product.batches if b.ref == 'batch1')
         batch2 = next(b for b in product.batches if b.ref == 'batch2')

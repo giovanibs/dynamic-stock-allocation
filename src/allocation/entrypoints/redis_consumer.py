@@ -17,8 +17,7 @@ from typing import Dict
 
 from allocation.config import get_logger, get_redis_config
 from allocation.domain import commands
-from allocation.orchestration import message_bus
-from allocation.orchestration.uow import DjangoUoW
+from allocation.orchestration import bootstrapper
 from allocation.adapters.redis_channels import RedisChannels
 
 
@@ -49,10 +48,8 @@ def main():
 def event_listener(subscriber):
     for msg in subscriber.listen():
         data = json.loads(msg['data'])
-        message_bus.MessageBus.handle(
-            CHANNEL_COMMAND_MAP[msg['channel']](**data),
-            DjangoUoW()
-        )
+        bus = bootstrapper.bootstrap()
+        bus.handle(CHANNEL_COMMAND_MAP[msg['channel']](**data))
 
 
 if __name__ == '__main__':

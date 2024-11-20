@@ -1,11 +1,17 @@
 import pytest
 from allocation.adapters.redis_query_repository import RedisQueryRepository
 from allocation.domain import commands
+from allocation.orchestration import bootstrapper
 
 
 @pytest.fixture
 def redis_repo(redis_host, redis_port):
     return RedisQueryRepository(redis_host, redis_port)
+
+
+@pytest.fixture
+def bus(redis_repo):
+    return bootstrapper.bootstrap(query_repository=redis_repo)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -16,9 +22,9 @@ def clear_redis(redis_client):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_batch_by_ref(today, redis_repo, bus, django_uow):
+def test_can_query_batch_by_ref(today, redis_repo, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
-    bus.handle(commands.CreateBatch(**batch), django_uow)
+    bus.handle(commands.CreateBatch(**batch))
     
     retrieved_batch = redis_repo.get_batch(batch['ref'])
     
@@ -29,11 +35,11 @@ def test_can_query_batch_by_ref(today, redis_repo, bus, django_uow):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
+def test_can_query_batch_ref_for_allocation(today, redis_repo, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     line = {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
-    bus.handle(commands.CreateBatch(**batch), django_uow)
-    bus.handle(commands.Allocate(**line), django_uow)
+    bus.handle(commands.CreateBatch(**batch))
+    bus.handle(commands.Allocate(**line))
     
     batch_ref = redis_repo.get_allocation_for_line(line['order_id'], line['sku'])
     
@@ -41,7 +47,7 @@ def test_can_query_batch_ref_for_allocation(today, redis_repo, bus, django_uow):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
+def test_can_query_allocations_for_order(tomorrow, redis_repo, bus):
     order_id = 'order1'
     batch1 =  ('batch1', 'sku1', 10, tomorrow)
     batch2 =  ('batch2', 'sku2', 10, tomorrow)
@@ -49,12 +55,12 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
     line1 =  (order_id, 'sku1', 10)
     line2 =  (order_id, 'sku2', 10)
     line3 =  (order_id, 'sku3', 10)
-    bus.handle(commands.CreateBatch(*batch1), django_uow)
-    bus.handle(commands.CreateBatch(*batch2), django_uow)
-    bus.handle(commands.CreateBatch(*batch3), django_uow)
-    bus.handle(commands.Allocate(*line1), django_uow)
-    bus.handle(commands.Allocate(*line2), django_uow)
-    bus.handle(commands.Allocate(*line3), django_uow)
+    bus.handle(commands.CreateBatch(*batch1))
+    bus.handle(commands.CreateBatch(*batch2))
+    bus.handle(commands.CreateBatch(*batch3))
+    bus.handle(commands.Allocate(*line1))
+    bus.handle(commands.Allocate(*line2))
+    bus.handle(commands.Allocate(*line3))
     
     allocations = redis_repo.get_allocations_for_order(order_id)
     
@@ -66,14 +72,14 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus, django_uow):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus, django_uow):
+def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus):
     batch =  ('batch', 'sku', 10, tomorrow)
     line1 =  {'order_id': 'o1', 'sku': 'sku', 'qty': 5}
     line2 =  {'order_id': 'o2', 'sku': 'sku', 'qty': 5}
-    bus.handle(commands.CreateBatch(*batch), django_uow)
-    bus.handle(commands.Allocate(**line1), django_uow)
-    bus.handle(commands.Allocate(**line2), django_uow)
-    bus.handle(commands.Deallocate(**line1), django_uow)
+    bus.handle(commands.CreateBatch(*batch))
+    bus.handle(commands.Allocate(**line1))
+    bus.handle(commands.Allocate(**line2))
+    bus.handle(commands.Deallocate(**line1))
     
     line1_batch_ref = redis_repo.get_allocation_for_line(line1['order_id'], line1['sku'])
     
@@ -85,7 +91,7 @@ def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus, django_uow):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, django_uow):
+def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus):
     order_id = 'order1'
     batch1 =  ('batch1', 'sku1', 10, tomorrow)
     batch2 =  ('batch2', 'sku2', 10, tomorrow)
@@ -93,13 +99,13 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, djang
     line1 =  (order_id, 'sku1', 10)
     line2 =  (order_id, 'sku2', 10)
     line3 =  (order_id, 'sku3', 10)
-    bus.handle(commands.CreateBatch(*batch1), django_uow)
-    bus.handle(commands.CreateBatch(*batch2), django_uow)
-    bus.handle(commands.CreateBatch(*batch3), django_uow)
-    bus.handle(commands.Allocate(*line1), django_uow)
-    bus.handle(commands.Allocate(*line2), django_uow)
-    bus.handle(commands.Allocate(*line3), django_uow)
-    bus.handle(commands.Deallocate(*line2), django_uow)
+    bus.handle(commands.CreateBatch(*batch1))
+    bus.handle(commands.CreateBatch(*batch2))
+    bus.handle(commands.CreateBatch(*batch3))
+    bus.handle(commands.Allocate(*line1))
+    bus.handle(commands.Allocate(*line2))
+    bus.handle(commands.Allocate(*line3))
+    bus.handle(commands.Deallocate(*line2))
     
     allocations = redis_repo.get_allocations_for_order(order_id)
     
@@ -110,13 +116,13 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus, djang
 
 
 @pytest.mark.django_db(transaction=True)
-def test_changing_batch_quantity_updates_batch(today, redis_repo, bus, django_uow):
+def test_changing_batch_quantity_updates_batch(today, redis_repo, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
-    bus.handle(commands.CreateBatch(**batch), django_uow)
+    bus.handle(commands.CreateBatch(**batch))
     
     retrieved_batch = redis_repo.get_batch(batch['ref'])
     assert retrieved_batch.qty == batch['qty']
     
-    bus.handle(commands.ChangeBatchQuantity(batch['ref'], 5), django_uow)
+    bus.handle(commands.ChangeBatchQuantity(batch['ref'], 5))
     retrieved_batch = redis_repo.get_batch(batch['ref'])
     assert retrieved_batch.qty == 5

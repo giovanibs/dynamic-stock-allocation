@@ -1,6 +1,7 @@
 from dataclasses import astuple
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock
+from allocation.domain.ports import AbstractPublisher
 from allocation.orchestration.uow import AbstractUnitOfWork
 
 
@@ -43,11 +44,14 @@ def add_batch(batch: commands.CreateBatch, uow: AbstractUnitOfWork) -> None:
     return batch
 
 
-def publish_event(event: events.Event, uow: AbstractUnitOfWork):
-    uow.publisher.publish_event(event)
+def publish_event(event: events.Event, publisher: AbstractPublisher):
+    publisher.publish_event(event)
     
 
-def change_batch_quantity(ref_and_qty: commands.ChangeBatchQuantity, uow: AbstractUnitOfWork):
+def change_batch_quantity(
+        ref_and_qty: commands.ChangeBatchQuantity,
+        uow: AbstractUnitOfWork
+):
     with uow:
         product = uow.products.get_by_batch_ref(ref_and_qty.ref)
         product.change_batch_quantity(ref_and_qty.ref, ref_and_qty.qty)

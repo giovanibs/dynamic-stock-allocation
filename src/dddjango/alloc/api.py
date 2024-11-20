@@ -2,8 +2,7 @@ import datetime
 from ninja import NinjaAPI
 from allocation.domain import commands
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
-from allocation.orchestration.message_bus import MessageBus
-from allocation.orchestration.uow import DjangoUoW
+from allocation.orchestration import bootstrapper
 from dddjango.alloc.schemas import BatchIn, BatchOut, BatchRef, Message, OrderLineIn
 
 
@@ -12,7 +11,8 @@ api = NinjaAPI()
 
 @api.get('batches/{batch_ref}', response=BatchOut)
 def get_batch_by_ref(request, batch_ref: str):
-    with DjangoUoW() as uow:
+    bus = bootstrapper.bootstrap()
+    with bus._uow as uow:
         products = uow.products.list()
         batches = {b for p in products for b in p.batches}
         batch = next(batch for batch in batches if batch.ref == batch_ref)
@@ -22,12 +22,11 @@ def get_batch_by_ref(request, batch_ref: str):
 
 @api.post('allocate', response = {201: BatchRef, 400: Message})
 def allocate(request, payload: OrderLineIn):
-    uow = DjangoUoW()
     line = payload.dict()
+    bus = bootstrapper.bootstrap()
     try:
-        results = MessageBus.handle(
-            commands.Allocate(line['order_id'], line['sku'], line['qty']),
-            uow
+        results = bus.handle(
+            commands.Allocate(line['order_id'], line['sku'], line['qty'])
         )
         if 'OutOfStock' in results:
             return 400, {'message': 'OutOfStock'}
@@ -42,12 +41,11 @@ def allocate(request, payload: OrderLineIn):
 
 @api.post('deallocate', response = {200: BatchRef, 400: Message})
 def deallocate(request, payload: OrderLineIn):
-    uow = DjangoUoW()
     line = payload.dict()
+    bus = bootstrapper.bootstrap()
     try:
-        results = MessageBus.handle(
-            commands.Deallocate(line['order_id'], line['sku'], line['qty']),
-            uow
+        results = bus.handle(
+            commands.Deallocate(line['order_id'], line['sku'], line['qty'])
         )
         batch_ref = results[-1]
     except InexistentProduct:
@@ -60,15 +58,15 @@ def deallocate(request, payload: OrderLineIn):
 
 @api.post('batches', response={201: BatchOut})
 def add_batch(request, payload: BatchIn):
-    uow = DjangoUoW()
     batch = payload.dict()
+    bus = bootstrapper.bootstrap()
     if isinstance(batch['eta'], datetime.date):
         batch['eta'] = batch['eta'].isoformat()
     
-    MessageBus.handle(commands.CreateBatch(**batch), uow)
+    bus.handle(commands.CreateBatch(**batch))
     
     added_batch = next(
-        b for b in uow.products.get(batch['sku']).batches
+        b for b in bus._uow.products.get(batch['sku']).batches
         if b.ref == batch['ref']
     )
 
