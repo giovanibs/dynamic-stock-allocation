@@ -2,16 +2,6 @@ from django.test import Client
 import pytest
 
 
-@pytest.fixture
-def base_url():
-    return '/api/'
-
-
-@pytest.fixture
-def client():
-    return Client()
-
-
 @pytest.mark.django_db(transaction=True)
 class TestBatch:
 
