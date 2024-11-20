@@ -12,27 +12,17 @@ if os.getenv('DJANGO_TEST_DATABASE'):
 
 
 import json
-import logging
 import redis
 from typing import Dict
 
-from allocation.config import get_redis_config
+from allocation.config import get_logger, get_redis_config
 from allocation.domain import commands
 from allocation.orchestration import message_bus
 from allocation.orchestration.uow import DjangoUoW
 from allocation.adapters.redis_channels import RedisChannels
 
 
-logger = logging.getLogger(__name__)
-
-if logger.hasHandlers():
-    logger.handlers.clear()
-
-filename = os.path.join(os.getcwd(), 'logs.log')
-file_handler = logging.FileHandler(filename, mode='a')
-logger.addHandler(file_handler)
-logger.setLevel(logging.DEBUG)
-
+logger = get_logger()
 redis_config = get_redis_config()
 redis_client = redis.Redis(redis_config[0], redis_config[1], decode_responses=True)
 

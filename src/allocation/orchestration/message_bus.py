@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Callable, Dict, List, Type, Union
+from allocation.config import get_logger
 from allocation.domain import events, commands
 from allocation.orchestration import handlers, query_handlers, uow
 
@@ -102,16 +103,4 @@ class MessageBus:
 
     @staticmethod
     def _get_logger():
-        logger = logging.getLogger(__name__)
-
-        if logger.hasHandlers():
-            logger.handlers.clear()
-
-        filename = os.path.join(os.getcwd(), 'logs.log')
-        file_handler = logging.FileHandler(filename, mode='a')
-        formatter = logging.Formatter('%(asctime)s--%(name)s--%(levelname)s: %(message)s',
-                                  "%Y-%m-%d %H:%M:%S")
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        logger.setLevel(logging.DEBUG)
-        return logger
+        return get_logger()
