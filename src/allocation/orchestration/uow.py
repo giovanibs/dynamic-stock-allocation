@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+from allocation.adapters.redis_publisher import RedisEventPublisher
 from allocation.adapters.redis_query_repository import RedisQueryRepository
 from allocation.config import get_redis_config
-from allocation.domain.ports import AbstractQueryRepository, AbstractWriteRepository
+from allocation.domain.ports import (
+    AbstractPublisher, AbstractQueryRepository, AbstractWriteRepository
+)
 from allocation.adapters.django_repository import DjangoRepository
 from django.db import transaction
 
@@ -10,6 +13,7 @@ from django.db import transaction
 class AbstractUnitOfWork(ABC):
     products: AbstractWriteRepository
     querier: AbstractQueryRepository
+    publisher: AbstractPublisher
 
 
     def __exit__(self, *args):
@@ -42,9 +46,18 @@ class AbstractUnitOfWork(ABC):
 
 class DjangoUoW(AbstractUnitOfWork):
 
-    def __init__(self, querier: Optional[AbstractQueryRepository] = None) -> None:
+    def __init__(
+            self,
+            querier: Optional[AbstractQueryRepository] = None,
+            publisher: Optional[AbstractPublisher] = None
+    ) -> None:
         self._products = DjangoRepository()
-        self._querier = querier if querier else RedisQueryRepository(*get_redis_config())
+        
+        self._querier = querier if querier \
+                        else RedisQueryRepository(*get_redis_config())
+        
+        self._publisher = publisher if publisher \
+                          else RedisEventPublisher(*get_redis_config())
 
     
     def __enter__(self):
@@ -60,6 +73,11 @@ class DjangoUoW(AbstractUnitOfWork):
     @property
     def querier(self) -> RedisQueryRepository:
         return self._querier
+
+
+    @property
+    def publisher(self) -> RedisQueryRepository:
+        return self._publisher
     
 
     def __exit__(self, *args):

@@ -3,7 +3,7 @@ import pytest
 from allocation.domain import commands, events
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.domain.model import Product
-from allocation.domain.ports import AbstractQueryRepository, AbstractWriteRepository
+from allocation.domain.ports import AbstractPublisher, AbstractQueryRepository, AbstractWriteRepository
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
 
@@ -53,41 +53,19 @@ class FakeProductRepository(AbstractWriteRepository):
 
 
 class FakeQueryRepo(AbstractQueryRepository):
-
-    def add_batch(self, ref, sku, qty, eta = None):
-        pass
-
-
-    def get_batch(self, ref):
-        pass
-    
-    
-    def update_batch_quantity(self, ref, qty):
-        pass
+    def add_batch(self, *args, **kwargs): ...
+    def get_batch(self, *args, **kwargs): ...
+    def update_batch_quantity(self, *args, **kwargs): ...
+    def add_allocation_for_line(self, *args, **kwargs): ...
+    def get_allocation_for_line(self, *args, **kwargs): ...
+    def remove_allocation_for_line(self, *args, **kwargs): ...
+    def add_allocation_for_order(self, *args, **kwargs): ...
+    def get_allocations_for_order(self, *args, **kwargs): ...
+    def remove_allocation_for_order(self, *args, **kwargs): ...
 
 
-    def add_allocation_for_line(self, order_id, sku, batch_ref):
-        pass
-
-
-    def get_allocation_for_line(self, order_id, sku):
-        pass
-
-
-    def remove_allocation_for_line(self, order_id, sku):
-        pass
-
-
-    def add_allocation_for_order(self, order_id, sku, batch_ref):
-        pass
-
-
-    def get_allocations_for_order(self, order_id):
-        pass
-
-
-    def remove_allocation_for_order(self, order_id, sku):
-        pass
+class FakePublisher(AbstractPublisher):
+    def publish_event(*args, **kwargs): ...
 
 
 class FakeProductUoW(AbstractUnitOfWork):
@@ -95,10 +73,12 @@ class FakeProductUoW(AbstractUnitOfWork):
         def __init__(
                 self,
                 repo: AbstractWriteRepository,
-                query_repo: AbstractQueryRepository
+                query_repo: AbstractQueryRepository,
+                publisher: AbstractPublisher
         ) -> None:
             self._products = repo
             self._querier = query_repo
+            self._publisher = publisher
             self._commited = False
             self.collected_messages = []
 
@@ -116,6 +96,11 @@ class FakeProductUoW(AbstractUnitOfWork):
         @property
         def querier(self) -> AbstractWriteRepository:
             return self._querier
+
+
+        @property
+        def publisher(self) -> AbstractWriteRepository:
+            return self._publisher
         
 
         def __enter__(self) -> AbstractUnitOfWork:
@@ -143,12 +128,11 @@ class FakeProductUoW(AbstractUnitOfWork):
 
         def rollback(self):
             self._collect_messages()
-            pass
 
 
 @pytest.fixture
 def uow():
-    return FakeProductUoW(FakeProductRepository(), FakeQueryRepo())
+    return FakeProductUoW(FakeProductRepository(), FakeQueryRepo(), FakePublisher())
 
 
 @pytest.fixture

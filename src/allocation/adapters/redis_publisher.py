@@ -1,15 +1,11 @@
 from allocation.adapters.redis_channels import RedisChannels
-from allocation.config import get_redis_config
 from allocation.domain import events
+from allocation.domain.ports import AbstractPublisher
 import dataclasses
 import datetime
 import json
 import redis
 from typing import Dict, Type
-
-
-redis_config = get_redis_config()
-redis_client = redis.Redis(redis_config[0], redis_config[1], decode_responses=True)
 
 
 class DateEncoder(json.JSONEncoder):
@@ -20,7 +16,7 @@ class DateEncoder(json.JSONEncoder):
         return super(DateEncoder, self).default(o)
 
 
-class RedisEventPublisher:
+class RedisEventPublisher(AbstractPublisher):
     
     CHANNELS: Dict[Type[events.Event], str] = {
             events.BatchCreated         : RedisChannels.BATCH_CREATED,
@@ -31,12 +27,12 @@ class RedisEventPublisher:
         }
     
     
-    def __init__(self, redis_client: redis.Redis) -> None:
-        self._redis_client = redis_client
+    def __init__(self, redis_host, redis_port) -> None:
+        self._client: redis.Redis = redis.Redis(redis_host, redis_port)
 
     
     def publish_event(self, event: events.Event):
-        self._redis_client.publish(
+        self._client.publish(
             channel=self.CHANNELS[type(event)],
             message=json.dumps(dataclasses.asdict(event), cls=DateEncoder)
         )

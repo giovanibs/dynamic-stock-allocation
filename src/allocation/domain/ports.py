@@ -118,3 +118,10 @@ class AbstractQueryRepository(ABC):
     @abstractmethod
     def remove_allocation_for_order(self, order_id, sku):
         raise NotImplementedError
+
+
+class AbstractPublisher(ABC):
+
+    @abstractmethod
+    def publish_event():
+        raise NotImplementedError
