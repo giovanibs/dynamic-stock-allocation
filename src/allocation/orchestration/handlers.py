@@ -1,5 +1,4 @@
 from dataclasses import astuple
-import os
 from allocation.config import get_redis_config
 from allocation.domain import events, commands, model as domain_
 from allocation.domain.exceptions import InexistentProduct, OutOfStock

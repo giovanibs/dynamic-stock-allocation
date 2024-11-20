@@ -3,7 +3,7 @@ import pytest
 from allocation.domain import commands, events
 from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
 from allocation.domain.model import Product
-from allocation.domain.ports import AbstractWriteRepository
+from allocation.domain.ports import AbstractQueryRepository, AbstractWriteRepository
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
 
@@ -52,10 +52,53 @@ class FakeProductRepository(AbstractWriteRepository):
             )
 
 
+class FakeQueryRepo(AbstractQueryRepository):
+
+    def add_batch(self, ref, sku, qty, eta = None):
+        pass
+
+
+    def get_batch(self, ref):
+        pass
+    
+    
+    def update_batch_quantity(self, ref, qty):
+        pass
+
+
+    def add_allocation_for_line(self, order_id, sku, batch_ref):
+        pass
+
+
+    def get_allocation_for_line(self, order_id, sku):
+        pass
+
+
+    def remove_allocation_for_line(self, order_id, sku):
+        pass
+
+
+    def add_allocation_for_order(self, order_id, sku, batch_ref):
+        pass
+
+
+    def get_allocations_for_order(self, order_id):
+        pass
+
+
+    def remove_allocation_for_order(self, order_id, sku):
+        pass
+
+
 class FakeProductUoW(AbstractUnitOfWork):
 
-        def __init__(self, repo: AbstractWriteRepository) -> None:
+        def __init__(
+                self,
+                repo: AbstractWriteRepository,
+                query_repo: AbstractQueryRepository
+        ) -> None:
             self._products = repo
+            self._querier = query_repo
             self._commited = False
             self.collected_messages = []
 
@@ -68,6 +111,11 @@ class FakeProductUoW(AbstractUnitOfWork):
         @property
         def products(self) -> AbstractWriteRepository:
             return self._products
+        
+        
+        @property
+        def querier(self) -> AbstractWriteRepository:
+            return self._querier
         
 
         def __enter__(self) -> AbstractUnitOfWork:
@@ -100,7 +148,7 @@ class FakeProductUoW(AbstractUnitOfWork):
 
 @pytest.fixture
 def uow():
-    return FakeProductUoW(FakeProductRepository())
+    return FakeProductUoW(FakeProductRepository(), FakeQueryRepo())
 
 
 @pytest.fixture

@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
-from allocation.domain.ports import AbstractWriteRepository
+from typing import Optional
+from allocation.adapters.redis_query_repository import RedisQueryRepository
+from allocation.config import get_redis_config
+from allocation.domain.ports import AbstractQueryRepository, AbstractWriteRepository
 from allocation.adapters.django_repository import DjangoRepository
 from django.db import transaction
 
 
 class AbstractUnitOfWork(ABC):
     products: AbstractWriteRepository
+    querier: AbstractQueryRepository
 
 
     def __exit__(self, *args):
@@ -38,8 +42,9 @@ class AbstractUnitOfWork(ABC):
 
 class DjangoUoW(AbstractUnitOfWork):
 
-    def __init__(self) -> None:
+    def __init__(self, querier: Optional[AbstractQueryRepository] = None) -> None:
         self._products = DjangoRepository()
+        self._querier = querier if querier else RedisQueryRepository(*get_redis_config())
 
     
     def __enter__(self):
@@ -50,6 +55,11 @@ class DjangoUoW(AbstractUnitOfWork):
     @property
     def products(self) -> DjangoRepository:
         return self._products
+    
+    
+    @property
+    def querier(self) -> RedisQueryRepository:
+        return self._querier
     
 
     def __exit__(self, *args):
