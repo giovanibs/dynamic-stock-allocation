@@ -31,5 +31,5 @@ class ValidQtyAndETAMixin(ValidQtyMixin):
         else:
             eta = self.eta
         
-        if eta <= date.today():
+        if eta < date.today():
             raise PastETANotAllowed()

@@ -60,3 +60,7 @@ def test_cannot_change_batch_qty_to_invalid_value(qty_value, expected_error):
 def test_cannot_set_invalid_eta(eta_value, expected_error):
     with pytest.raises(expected_error):
         commands.CreateBatch('foo', 'bar', 1, eta_value)
+
+
+def test_current_day_is_a_valid_eta(today):
+    commands.CreateBatch('foo', 'bar', 1, today)
