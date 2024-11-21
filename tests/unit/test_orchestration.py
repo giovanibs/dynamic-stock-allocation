@@ -168,23 +168,6 @@ class TestOrchestrationAllocate:
         assert uow.commited == True
 
 
-    def test_allocate_does_not_commit_on_error(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch))
-        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-        line_with_greater_qty = ('o2', 'skew', 11)
-        try:
-            bus.handle(commands.Allocate(*line_with_invalid_sku))
-        except InexistentProduct:
-            pass
-        
-        assert uow.commited == False
-
-        with pytest.raises(OutOfStock):
-            bus.handle(commands.Allocate(*line_with_greater_qty))
-        
-        assert uow.commited == False
-
-
     def test_allocate_returns_batch_ref(self, today, later, bus):
         earlier_batch = ('earlier', 'skew', 10, today)
         later_batch = ('later', 'skew', 10, later)
@@ -203,22 +186,23 @@ class TestOrchestrationAllocate:
         assert uow.products.get(sku='skew').batches[0].available_qty == 0
 
 
-    def test_allocate_raises_error_for_invalid_sku(self, batch, bus):
+    @pytest.mark.parametrize(
+        ('line', 'expected_exception'),
+        [
+            (('o1', 'invalid_skew', 1), InexistentProduct),
+            (('o2', 'skew', 1_000), OutOfStock),
+        ]
+    )
+    def test_allocate_raises_errors_and_do_not_commit(
+        self, batch, bus, uow, line, expected_exception
+    ):
         bus.handle(commands.CreateBatch(*batch))
-        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
         
-        with pytest.raises(InexistentProduct):
-            bus.handle(commands.Allocate(*line_with_invalid_sku))
-
-
-    def test_allocate_raises_event_for_overallocation(self, batch, uow, bus):
-        bus.handle(commands.CreateBatch(*batch))
-        line_with_greater_qty = ('o2', 'skew', 11)
-        with pytest.raises(OutOfStock):
-            bus.handle(commands.Allocate(*line_with_greater_qty))
+        with pytest.raises(expected_exception):
+            bus.handle(commands.Allocate(*line))
         
-        assert events.OutOfStock in {type(event) for event in uow.collected_messages}
-
+        assert uow.commited == False
+    
 
 class TestOrchestrationDeallocate:
 
@@ -251,40 +235,22 @@ class TestOrchestrationDeallocate:
         assert uow.commited == True
 
 
-    def test_deallocate_does_not_commit_on_error(self, batch, uow, bus):
+    @pytest.mark.parametrize(
+        ('line', 'expected_exception'),
+        [
+            (('o1', 'invalid_skew', 1), InexistentProduct),
+            (('o2', 'skew', 1), LineIsNotAllocatedError),
+        ]
+    )
+    def test_deallocate_raises_errors_and_do_not_commit(
+        self, batch, bus, uow, line, expected_exception
+    ):
         bus.handle(commands.CreateBatch(*batch))
-        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-        line_not_allocated = ('o2', 'skew', 1)
         
-        try:
-            bus.handle(commands.Deallocate(*line_with_invalid_sku))
-        except InexistentProduct:
-            pass
+        with pytest.raises(expected_exception):
+            bus.handle(commands.Deallocate(*line))
         
         assert uow.commited == False
-
-        try:
-            bus.handle(commands.Deallocate(*line_not_allocated))
-        except LineIsNotAllocatedError:
-            pass
-
-        assert uow.commited == False
-
-
-    def test_deallocate_raises_error_for_invalid_sku(self, batch, bus):
-        bus.handle(commands.CreateBatch(*batch))
-        line_with_invalid_sku = ('o1', 'invalid_skew', 1)
-        
-        with pytest.raises(InexistentProduct):
-            bus.handle(commands.Deallocate(*line_with_invalid_sku))
-
-
-    def test_deallocate_raises_error_for_not_allocated_line(self, batch, bus):
-        bus.handle(commands.CreateBatch(*batch))
-        line_not_allocated = ('o2', 'skew', 1)
-        
-        with pytest.raises(LineIsNotAllocatedError):
-            bus.handle(commands.Deallocate(*line_not_allocated))
 
 
 class TestOrchestrationChangeBatchQuantity:

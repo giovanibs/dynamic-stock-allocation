@@ -26,11 +26,11 @@ class TestBatch:
     
 
     @pytest.mark.parametrize(
-            ('values', 'error_msg'),
-            [
-                (('batch', 'sku', -1), InvalidQuantity().message),
-                (('batch', 'sku', 1, '1900-01-01'), PastETANotAllowed().message),
-            ]
+        ('values', 'error_msg'),
+        [
+            (('batch', 'sku', -1), InvalidQuantity().message),
+            (('batch', 'sku', 1, '1900-01-01'), PastETANotAllowed().message),
+        ]
     )
     def test_invalid_values_return_error_message(self, values, error_msg):
         # not testing type validation because it's done by Ninja
@@ -56,30 +56,21 @@ class TestAllocate:
         assert response.json()['batch_ref'] == earliest_batch[0]
 
 
-    def test_allocate_400_message_for_out_of_stock(self): 
+    @pytest.mark.parametrize(
+        ('line', 'error_message'),
+        [
+            (('o1', 'inexistent', 1), 'InexistentProduct'),
+            (('o1', 'skew', 1_000), 'OutOfStock'),
+            (('o1', 'skew', -1), InvalidQuantity().message),
+                # not testing qty type validation because it's done by Ninja
+        ]
+    )
+    def test_allocate_400_errors(self, line, error_message): 
         batch = ('batch', 'skew', 10)
         post_to_create_batch(*batch)
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 15}
-        response = post_to_allocate_line(**line, assert_ok=False)
+        response = post_to_allocate_line(*line, assert_ok=False)
         assert response.status_code == 400
-        assert response.json()['message'] == 'OutOfStock'
-
-
-    def test_allocate_400_message_for_inexistent_product(self):
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 10}
-        response = post_to_allocate_line(**line, assert_ok=False)
-        assert response.status_code == 400
-        assert response.json()['message'] == 'InexistentProduct'
-    
-
-    def test_allocate_400_message_for_invalid_quantity(self):
-        # not testing type validation because it's done by Ninja
-        batch = ('batch', 'skew', 10)
-        post_to_create_batch(*batch)
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': -1}
-        response = post_to_allocate_line(**line, assert_ok=False)
-        assert response.status_code == 400
-        assert response.json()['message'] == InvalidQuantity().message
+        assert response.json()['message'] == error_message
 
 
 @pytest.mark.django_db(transaction=True)
@@ -95,28 +86,21 @@ class TestDeallocate:
         assert response.json()['batch_ref'] == batch[0]
     
 
-    def test_deallocate_400_message_for_inexistent_product(self):
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
-        response = post_to_deallocate_line(**line, assert_ok=False)
-        assert response.status_code == 400
-        assert response.json()['message'] == 'InexistentProduct'
-
-
-    def test_deallocate_400_message_for_line_not_allocated(self): 
+    @pytest.mark.parametrize(
+        ('line', 'error_message'),
+        [
+            (('o1', 'inexistent', 1), 'InexistentProduct'),
+            (('o1', 'skew', 1), 'LineIsNotAllocatedError'),
+            (('o1', 'skew', -1), InvalidQuantity().message),
+                # not testing qty type validation because it's done by Ninja
+        ]
+    )
+    def test_deallocate_400_errors(self, line, error_message):
         batch = ('batch', 'skew', 10)
         post_to_create_batch(*batch)
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': 1}
-        response = post_to_deallocate_line(**line, assert_ok=False)
+        response = post_to_deallocate_line(*line, assert_ok=False)
         assert response.status_code == 400
-        assert response.json()['message'] == 'LineIsNotAllocatedError'
-
-
-    def test_deallocate_400_message_for_invalid_quantity(self):
-        # not testing type validation because it's done by Ninja
-        line = {'order_id': 'o1', 'sku': 'skew', 'qty': -1}
-        response = post_to_deallocate_line(**line, assert_ok=False)
-        assert response.status_code == 400
-        assert response.json()['message'] == InvalidQuantity().message
+        assert response.json()['message'] == error_message
 
 
 def post_to_create_batch(ref, sku, qty, eta=None, assert_ok=True):
