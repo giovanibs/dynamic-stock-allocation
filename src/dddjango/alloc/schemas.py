@@ -27,5 +27,5 @@ class BatchRef(Schema):
     batch_ref: str
 
 
-class Message(Schema):
+class ErrorMessage(Schema):
     message: str

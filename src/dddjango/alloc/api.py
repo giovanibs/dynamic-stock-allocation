@@ -1,9 +1,12 @@
-import datetime
 from ninja import NinjaAPI
 from allocation.domain import commands
-from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
+from allocation.domain.exceptions import (
+    InexistentProduct, LineIsNotAllocatedError, ValidationError
+)
 from allocation.orchestration import bootstrapper
-from dddjango.alloc.schemas import BatchIn, BatchOut, BatchRef, Message, OrderLineIn
+from dddjango.alloc.schemas import (
+    BatchIn, BatchOut, BatchRef, ErrorMessage, OrderLineIn
+)
 
 
 api = NinjaAPI()
@@ -20,7 +23,7 @@ def get_batch_by_ref(request, batch_ref: str):
     return 200, batch
 
 
-@api.post('allocate', response = {201: BatchRef, 400: Message})
+@api.post('allocate', response = {201: BatchRef, 400: ErrorMessage})
 def allocate(request, payload: OrderLineIn):
     line = payload.dict()
     bus = bootstrapper.bootstrap()
@@ -32,14 +35,15 @@ def allocate(request, payload: OrderLineIn):
             return 400, {'message': 'OutOfStock'}
         
         batch_ref = results[-1]
-
     except InexistentProduct:
         return 400, {'message': 'InexistentProduct'}
+    except ValidationError as validation_error:
+        return 400, {'message': validation_error.message}
         
     return 201, {'batch_ref': batch_ref}
 
 
-@api.post('deallocate', response = {200: BatchRef, 400: Message})
+@api.post('deallocate', response = {200: BatchRef, 400: ErrorMessage})
 def deallocate(request, payload: OrderLineIn):
     line = payload.dict()
     bus = bootstrapper.bootstrap()
@@ -52,22 +56,24 @@ def deallocate(request, payload: OrderLineIn):
         return 400, {'message': 'InexistentProduct'}
     except LineIsNotAllocatedError:
         return 400, {'message': 'LineIsNotAllocatedError'}
+    except ValidationError as validation_error:
+        return 400, {'message': validation_error.message}
+        
         
     return 200, {'batch_ref': batch_ref}
 
 
-@api.post('batches', response={201: BatchOut})
+@api.post('batches', response={201: BatchOut, 400: ErrorMessage})
 def add_batch(request, payload: BatchIn):
     batch = payload.dict()
     bus = bootstrapper.bootstrap()
-    if isinstance(batch['eta'], datetime.date):
-        batch['eta'] = batch['eta'].isoformat()
-    
-    bus.handle(commands.CreateBatch(**batch))
+    try:
+        bus.handle(commands.CreateBatch(**batch))
+    except ValidationError as validation_error:
+        return 400, {'message': validation_error.message}
     
     added_batch = next(
         b for b in bus._uow.products.get(batch['sku']).batches
         if b.ref == batch['ref']
     )
-
     return 201, added_batch
