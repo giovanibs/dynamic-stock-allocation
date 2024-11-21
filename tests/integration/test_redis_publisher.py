@@ -4,6 +4,7 @@ import pytest
 from allocation.adapters.redis_channels import RedisChannels
 from allocation.adapters.redis_publisher import RedisEventPublisher
 from allocation.domain import commands
+from allocation.domain.exceptions import OutOfStock
 from allocation.orchestration import bootstrapper
 
 
@@ -71,7 +72,8 @@ class TestRedisPublishesEvents:
         subscriber.subscribe(RedisChannels.OUT_OF_STOCK)
         line = ('o1', 'skew', batch[2] + 1)
         bus.handle(commands.CreateBatch(*batch))
-        bus.handle(commands.Allocate(*line))
+        with pytest.raises(OutOfStock):
+            bus.handle(commands.Allocate(*line))
         message = self.receive_message(subscriber)
         assert message['channel'] == RedisChannels.OUT_OF_STOCK
         assert json.loads(message['data'])['sku'] == 'skew'
@@ -83,7 +85,8 @@ class TestRedisPublishesEvents:
         line = ('o1', 'skew', batch[2])
         bus.handle(commands.CreateBatch(*batch))
         bus.handle(commands.Allocate(*line))
-        bus.handle(commands.ChangeBatchQuantity(batch[0], batch[2] - 1))
+        with pytest.raises(OutOfStock):
+            bus.handle(commands.ChangeBatchQuantity(batch[0], batch[2] - 1))
         message = self.receive_message(subscriber)
         assert message['channel'] == RedisChannels.BATCH_QUANTITY_CHANGED
         assert json.loads(message['data'])['ref'] == batch[0]

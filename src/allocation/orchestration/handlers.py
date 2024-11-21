@@ -13,7 +13,7 @@ def allocate(line: commands.Allocate, uow: AbstractUnitOfWork):
             batch_ref = product.allocate(line.order_id, line.sku, line.qty)
         except OutOfStock:
             uow.rollback()
-            return 'OutOfStock'
+            raise
 
         uow.commit()
     return batch_ref

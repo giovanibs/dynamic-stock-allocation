@@ -1,9 +1,13 @@
 from typing import List, Optional
 import pytest
 from allocation.domain import commands, events
-from allocation.domain.exceptions import InexistentProduct, LineIsNotAllocatedError
+from allocation.domain.exceptions import (
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock
+)
 from allocation.domain.model import Product
-from allocation.domain.ports import AbstractPublisher, AbstractQueryRepository, AbstractWriteRepository
+from allocation.domain.ports import (
+    AbstractPublisher, AbstractQueryRepository, AbstractWriteRepository
+)
 from allocation.orchestration import bootstrapper
 from allocation.orchestration.uow import AbstractUnitOfWork
 from dddjango.alloc.models import Product
@@ -175,9 +179,9 @@ class TestOrchestrationAllocate:
         
         assert uow.commited == False
 
-        results = bus.handle(commands.Allocate(*line_with_greater_qty))
+        with pytest.raises(OutOfStock):
+            bus.handle(commands.Allocate(*line_with_greater_qty))
         
-        assert results[-1] == 'OutOfStock'
         assert uow.commited == False
 
 
@@ -210,7 +214,8 @@ class TestOrchestrationAllocate:
     def test_allocate_raises_event_for_overallocation(self, batch, uow, bus):
         bus.handle(commands.CreateBatch(*batch))
         line_with_greater_qty = ('o2', 'skew', 11)
-        bus.handle(commands.Allocate(*line_with_greater_qty))
+        with pytest.raises(OutOfStock):
+            bus.handle(commands.Allocate(*line_with_greater_qty))
         
         assert events.OutOfStock in {type(event) for event in uow.collected_messages}
 

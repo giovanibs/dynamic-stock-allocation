@@ -1,7 +1,7 @@
 from ninja import NinjaAPI
 from allocation.domain import commands
 from allocation.domain.exceptions import (
-    InexistentProduct, LineIsNotAllocatedError, ValidationError
+    InexistentProduct, LineIsNotAllocatedError, OutOfStock, ValidationError
 )
 from allocation.orchestration import bootstrapper
 from dddjango.alloc.schemas import (
@@ -31,15 +31,14 @@ def allocate(request, payload: OrderLineIn):
         results = bus.handle(
             commands.Allocate(line['order_id'], line['sku'], line['qty'])
         )
-        if 'OutOfStock' in results:
-            return 400, {'message': 'OutOfStock'}
-        
-        batch_ref = results[-1]
+    except OutOfStock:
+        return 400, {'message': 'OutOfStock'}
     except InexistentProduct:
         return 400, {'message': 'InexistentProduct'}
     except ValidationError as validation_error:
         return 400, {'message': validation_error.message}
         
+    batch_ref = results[-1]
     return 201, {'batch_ref': batch_ref}
 
 

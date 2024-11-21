@@ -1,6 +1,7 @@
 from typing import Callable, Dict, List, Type, Union
 from allocation.config import get_logger
 from allocation.domain import events, commands
+from allocation.domain.exceptions import OutOfStock
 from allocation.orchestration.uow import AbstractUnitOfWork
 
 
@@ -46,6 +47,13 @@ class MessageBus:
         try:
             result = command_handler(command)
         
+        except OutOfStock:
+            # Collect OutOfStock event from UoW, process remaining queue events,
+            # then re-raise OutOfStock exception
+            self._queue.extend(self._uow.collect_new_messages())
+            for event in self._queue:
+                self.handle_event(event)
+            raise
         except Exception as e:
             self.log_error(command, command_handler, e)
             raise
@@ -55,19 +63,15 @@ class MessageBus:
 
 
     def handle_event(self, event: events.Event):
-        results = []
         for handler in self._event_handlers[type(event)]:
             self.log_debug(event, handler)
             try:
-                results.append(handler(event))
-            
+                handler(event)
             except Exception as e:
                 self.log_error(event, handler, e)
                 raise
             
             self._queue.extend(self._uow.collect_new_messages())
-        
-        return results
     
 
     def log_debug(self, message: Message, handler):
