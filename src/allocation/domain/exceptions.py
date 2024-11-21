@@ -36,3 +36,35 @@ class InexistentProduct(Exception):
 
 class ProductAlreadyExists(Exception):
     """Error raised when trying to create a Product that already exists."""
+
+
+class ValidationError(Exception):
+    """Error raised when trying to set an invalid attribute to a command."""
+
+
+class InvalidTypeForQuantity(ValidationError):
+    """Error raised when trying to set a non-integer value to a quantity attribute."""
+    def __init__(self, message='Quantity value must be an integer.'):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidQuantity(ValidationError):
+    """Error raised when trying to set an invalid quantity."""
+    def __init__(self, message='Quantity value must be > 1.'):
+        self.message = message
+        super().__init__(self.message)
+
+
+class PastETANotAllowed(ValidationError):
+    """Error raised when trying to set an ETA that is in the past."""
+    def __init__(self, message='Setting an ETA to a past date is not allowed.'):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidETAFormat(ValidationError):
+    """Error raised when trying to set an ETA with invalid format."""
+    def __init__(self, message='ETA must follow the ISO 8601 format'):
+        self.message = message
+        super().__init__(self.message)

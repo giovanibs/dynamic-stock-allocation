@@ -2,13 +2,15 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
+from allocation.domain.validators import ValidQtyAndETAMixin, ValidQtyMixin
+
 
 class Command:
     pass
 
 
 @dataclass(frozen=True)
-class CreateBatch(Command):
+class CreateBatch(Command, ValidQtyAndETAMixin):
     ref: str
     sku: str
     qty: int
@@ -16,27 +18,27 @@ class CreateBatch(Command):
 
 
 @dataclass(frozen=True)
-class Allocate(Command):
+class Allocate(Command, ValidQtyMixin):
     order_id: str
     sku: str
     qty: int
 
 
 @dataclass(frozen=True)
-class Deallocate(Command):
+class Deallocate(Command, ValidQtyMixin):
     order_id: str
     sku: str
     qty: int
 
 
 @dataclass(frozen=True)
-class ChangeBatchQuantity(Command):
+class ChangeBatchQuantity(Command, ValidQtyMixin):
     ref: str
     qty: int
 
 
 @dataclass(frozen=True)
-class Reallocate(Command):
+class Reallocate(Command, ValidQtyMixin):
     order_id: str
     sku: str
     qty: int
