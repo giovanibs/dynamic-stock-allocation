@@ -21,4 +21,4 @@ RUN pip install -e ./src
 
 EXPOSE 8000
 
-CMD make django_up
+CMD make django-up
