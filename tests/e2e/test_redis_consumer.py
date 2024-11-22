@@ -41,8 +41,9 @@ def line(sku):
 def test_can_create_batch_via_redis(batch, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.BATCH_CREATED)
     json_batch = json.dumps(batch)
-    redis_client.publish(channel=RedisChannels.CREATE_BATCH, message=json_batch)
+    redis_client.publish(RedisChannels.CREATE_BATCH, json_batch)
     created_message = receive_message(subscriber)
+    assert created_message is not None
     assert created_message['data'] == json_batch
 
 
@@ -50,9 +51,10 @@ def test_can_allocate_a_line_via_redis(batch, line, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.LINE_ALLOCATED)
     json_batch = json.dumps(batch)
     json_line = json.dumps(line)
-    redis_client.publish(channel=RedisChannels.CREATE_BATCH, message=json_batch)
-    redis_client.publish(channel=RedisChannels.ALLOCATE_LINE, message=json_line)
+    redis_client.publish(RedisChannels.CREATE_BATCH, json_batch)
+    redis_client.publish(RedisChannels.ALLOCATE_LINE, json_line)
     message = receive_message(subscriber)
+    assert message is not None
     data = json.loads(message['data'])
     assert_line_fields_match(line, data)
     assert data['batch_ref'] == batch['ref']
@@ -62,10 +64,11 @@ def test_can_deallocate_a_line_via_redis(batch, line, subscriber, redis_client):
     subscriber.subscribe(RedisChannels.LINE_DEALLOCATED)
     json_batch = json.dumps(batch)
     json_line = json.dumps(line)
-    redis_client.publish(channel=RedisChannels.CREATE_BATCH, message=json_batch)
-    redis_client.publish(channel=RedisChannels.ALLOCATE_LINE, message=json_line)
-    redis_client.publish(channel=RedisChannels.DEALLOCATE_LINE, message=json_line)
+    redis_client.publish(RedisChannels.CREATE_BATCH, json_batch)
+    redis_client.publish(RedisChannels.ALLOCATE_LINE, json_line)
+    redis_client.publish(RedisChannels.DEALLOCATE_LINE, json_line)
     message = receive_message(subscriber)
+    assert message is not None
     data = json.loads(message['data'])
     assert_line_fields_match(line, data)
 
@@ -78,25 +81,35 @@ def test_can_change_batch_quantity_via_redis(batch, line, subscriber, redis_clie
     json_batch = json.dumps(batch)
     json_line = json.dumps(line)
     json_batch_change = json.dumps(batch_change)
-    redis_client.publish(channel=RedisChannels.CREATE_BATCH, message=json_batch)
-    redis_client.publish(channel=RedisChannels.ALLOCATE_LINE, message=json_line)
-    redis_client.publish(channel=RedisChannels.CHANGE_BATCH_QUANTITY, message=json_batch_change)
+    redis_client.publish(RedisChannels.CREATE_BATCH, json_batch)
+    redis_client.publish(RedisChannels.ALLOCATE_LINE, json_line)
+    redis_client.publish(RedisChannels.CHANGE_BATCH_QUANTITY, json_batch_change)
     
     message = receive_message(subscriber)
+    assert message is not None
     assert message['channel'] == RedisChannels.LINE_DEALLOCATED
     data = json.loads(message['data'])
     assert_line_fields_match(line, data)
     assert data['batch_ref'] == batch['ref']
 
     message = receive_message(subscriber)
+    assert message is not None
     assert message['channel'] == RedisChannels.BATCH_QUANTITY_CHANGED
     data = json.loads(message['data'])
     assert data['ref'] == batch_change['ref']
     assert data['qty'] == batch_change['qty']
 
     message = receive_message(subscriber)
+    assert message is not None
     assert message['channel'] == RedisChannels.OUT_OF_STOCK
     assert json.loads(message['data'])['sku'] == line['sku']
+
+
+def test_consumer_keeps_breathing_after_exception(subscriber, redis_client, line):
+    redis_client.publish(RedisChannels.ALLOCATE_LINE, json.dumps(line))
+    subscriber.subscribe(RedisChannels.CONSUMER_PONG)
+    redis_client.publish(RedisChannels.CONSUMER_PING, 'hello?')
+    assert receive_message(subscriber) is not None
 
 
 def assert_line_fields_match(line, data):
@@ -114,4 +127,4 @@ def receive_message(subscriber):
         sleep(0.3)
         retries -= 1
     else:
-        raise AssertionError
+        return None

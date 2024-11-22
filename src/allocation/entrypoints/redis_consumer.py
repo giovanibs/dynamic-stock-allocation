@@ -19,6 +19,7 @@ from allocation.config import get_logger, get_redis_config
 from allocation.domain import commands
 from allocation.orchestration import bootstrapper
 from allocation.adapters.redis_channels import RedisChannels
+from allocation.domain.exceptions import DomainException, ValidationError
 
 
 logger = get_logger()
@@ -35,21 +36,32 @@ CHANNEL_COMMAND_MAP: Dict[str, commands.Command] = {
 
 def main():
     subscriber = redis_client.pubsub(ignore_subscribe_messages=True)
+    subscriber.subscribe(RedisChannels.CONSUMER_PING)
     
     for channel in CHANNEL_COMMAND_MAP:
         subscriber.subscribe(channel)
     
-    try:
-        event_listener(subscriber)
-    except:
-        logger.exception('Error while listening...')
+    event_listener(subscriber)
 
 
 def event_listener(subscriber):
+    
     for msg in subscriber.listen():
+        
+        if msg['channel'] == RedisChannels.CONSUMER_PING:
+            redis_client.publish(RedisChannels.CONSUMER_PONG, 1)
+            continue
+
         data = json.loads(msg['data'])
         bus = bootstrapper.bootstrap()
-        bus.handle(CHANNEL_COMMAND_MAP[msg['channel']](**data))
+        try:
+            bus.handle(CHANNEL_COMMAND_MAP[msg['channel']](**data))
+        except DomainException:
+            logger.exception('DomainException')
+        except ValidationError:
+            logger.exception('ValidationError')
+        except Exception as e:
+            logger.exception('Other exception')
 
 
 if __name__ == '__main__':
