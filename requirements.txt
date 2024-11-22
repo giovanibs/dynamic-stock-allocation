@@ -1,7 +1,8 @@
-django
-django-ninja
-pytest
-pytest-django
-psycopg[binary]
-python-dotenv
-redis
+django==5.1.3
+django-ninja==1.3.0
+pytest==8.3.3
+pytest-django==4.9.0
+python-dotenv==1.0.1
+redis==5.2.0
+psycopg[binary]==3.2.3
+setuptools==75.3.0
