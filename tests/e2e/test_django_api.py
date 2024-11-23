@@ -1,7 +1,6 @@
 from django.test import Client
 import pytest
-
-from allocation.domain.exceptions import InvalidQuantity, PastETANotAllowed
+from allocation.domain import exceptions
 
 
 @pytest.mark.django_db(transaction=True)
@@ -28,15 +27,23 @@ class TestBatch:
     @pytest.mark.parametrize(
         ('values', 'error_msg'),
         [
-            (('batch', 'sku', -1), InvalidQuantity().message),
-            (('batch', 'sku', 1, '1900-01-01'), PastETANotAllowed().message),
+            (('batch', 'sku', 'a'), exceptions.InvalidTypeForQuantity().message),
+            (('batch', 'sku', -1), exceptions.InvalidQuantity().message),
+            (('batch', 'sku', 1, 'aaaaa'), exceptions.InvalidETAFormat().message),
+            (('batch', 'sku', 1, '1900-01-01'), exceptions.PastETANotAllowed().message),
         ]
     )
     def test_invalid_values_return_error_message(self, values, error_msg):
-        # not testing type validation because it's done by Ninja
         response = post_to_create_batch(*values, assert_ok=False)
         assert response.status_code == 400
         assert response.json()['message'] == error_msg
+    
+
+    def test_batch_does_not_exist(self):
+        batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
+        response = retrieve_batch_from_server(batch['ref'], assert_ok=False)
+        assert response.status_code == 400
+        assert response.json()['message'] == exceptions.BatchDoesNotExist().message
 
 
 @pytest.mark.django_db(transaction=True)
@@ -59,10 +66,10 @@ class TestAllocate:
     @pytest.mark.parametrize(
         ('line', 'error_message'),
         [
-            (('o1', 'inexistent', 1), 'InexistentProduct'),
-            (('o1', 'skew', 1_000), 'OutOfStock'),
-            (('o1', 'skew', -1), InvalidQuantity().message),
-                # not testing qty type validation because it's done by Ninja
+            (('o1', 'inexistent', 1), exceptions.InexistentProduct().message),
+            (('o1', 'skew', 1_000), exceptions.OutOfStock().message),
+            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().message),
+            (('o1', 'skew', -1), exceptions.InvalidQuantity().message),
         ]
     )
     def test_allocate_400_errors(self, line, error_message): 
@@ -89,10 +96,10 @@ class TestDeallocate:
     @pytest.mark.parametrize(
         ('line', 'error_message'),
         [
-            (('o1', 'inexistent', 1), 'InexistentProduct'),
-            (('o1', 'skew', 1), 'LineIsNotAllocatedError'),
-            (('o1', 'skew', -1), InvalidQuantity().message),
-                # not testing qty type validation because it's done by Ninja
+            (('o1', 'inexistent', 1), exceptions.InexistentProduct().message),
+            (('o1', 'skew', 1), exceptions.LineIsNotAllocatedError().message),
+            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().message),
+            (('o1', 'skew', -1), exceptions.InvalidQuantity().message),
         ]
     )
     def test_deallocate_400_errors(self, line, error_message):
