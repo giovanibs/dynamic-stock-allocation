@@ -84,7 +84,7 @@ class Batch:
 
     def deallocate(self, line: OrderLine) -> None:
         if line not in self._allocations:
-            raise LineIsNotAllocatedError()
+            raise LineIsNotAllocatedError(line_info=(line.order_id, line.sku))
         
         self._allocations.remove(line)
 
@@ -164,13 +164,13 @@ class Product:
         return batch.ref
 
 
-    def _get_suitable_batch_or_raise_error(self, line) -> Batch:
+    def _get_suitable_batch_or_raise_error(self, line: OrderLine) -> Batch:
         try:
             return next(batch 
                          for batch in sorted(self._batches)
                          if batch.can_allocate(line))
         except StopIteration:
-            raise OutOfStock()
+            raise OutOfStock(sku=line.sku)
 
 
     def deallocate(self, order_id: str, sku: str, qty: int) -> str:
@@ -189,7 +189,7 @@ class Product:
                         for batch in self._batches
                         if line in batch.allocations)
         except StopIteration:
-            raise LineIsNotAllocatedError()
+            raise LineIsNotAllocatedError(line_info=(line.order_id, line.sku))
         
 
     def validate_sku(self, sku):

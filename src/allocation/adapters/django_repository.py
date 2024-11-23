@@ -39,7 +39,7 @@ class DjangoRepository(AbstractWriteRepository):
         try:
             return orm.Product.objects.get(sku=sku).to_domain()
         except orm.Product.DoesNotExist:
-            raise InexistentProduct
+            raise InexistentProduct(sku=sku)
 
 
     def update(self, updated_product: domain_.Product) -> None:

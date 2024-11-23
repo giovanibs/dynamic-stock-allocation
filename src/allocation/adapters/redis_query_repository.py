@@ -21,7 +21,7 @@ class RedisQueryRepository(AbstractQueryRepository):
         batch_data = self._client.hget('batches', ref)
         
         if batch_data is None:
-            raise exceptions.BatchDoesNotExist()
+            raise exceptions.BatchDoesNotExist(ref=ref)
         
         return pickle.loads(batch_data)
 
@@ -41,7 +41,7 @@ class RedisQueryRepository(AbstractQueryRepository):
         batch_ref = self._client.hget('allocation', f'{order_id}--{sku}')
 
         if batch_ref is None:
-            raise exceptions.LineIsNotAllocatedError()
+            raise exceptions.LineIsNotAllocatedError(line_info=(order_id, sku))
         
         return batch_ref
 
@@ -66,7 +66,7 @@ class RedisQueryRepository(AbstractQueryRepository):
         allocations = self._client.hget('order_allocations', order_id)
 
         if allocations is None:
-            raise exceptions.OrderHasNoAllocations()
+            raise exceptions.OrderHasNoAllocations(order_id=order_id)
         
         return pickle.loads(allocations)
 

@@ -25,10 +25,10 @@ class TestBatch:
     @pytest.mark.parametrize(
         ('values', 'error_msg'),
         [
-            (('batch', 'sku', 'a'), exceptions.InvalidTypeForQuantity().message),
-            (('batch', 'sku', -1), exceptions.InvalidQuantity().message),
-            (('batch', 'sku', 1, 'aaaaa'), exceptions.InvalidETAFormat().message),
-            (('batch', 'sku', 1, '1900-01-01'), exceptions.PastETANotAllowed().message),
+            (('batch', 'sku', 'a'), exceptions.InvalidTypeForQuantity().msg),
+            (('batch', 'sku', -1), exceptions.InvalidQuantity().msg),
+            (('batch', 'sku', 1, 'aaaaa'), exceptions.InvalidETAFormat().msg),
+            (('batch', 'sku', 1, '1900-01-01'), exceptions.PastETANotAllowed().msg),
         ]
     )
     def test_invalid_values_return_error_message(self, values, error_msg):
@@ -57,10 +57,10 @@ class TestAllocate:
     @pytest.mark.parametrize(
         ('line', 'error_message'),
         [
-            (('o1', 'inexistent', 1), exceptions.InexistentProduct().message),
-            (('o1', 'skew', 1_000), exceptions.OutOfStock().message),
-            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().message),
-            (('o1', 'skew', -1), exceptions.InvalidQuantity().message),
+            (('o1', 'foo', 1), exceptions.InexistentProduct(sku='foo').msg),
+            (('o1', 'skew', 1_000), exceptions.OutOfStock(sku='skew').msg),
+            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().msg),
+            (('o1', 'skew', -1), exceptions.InvalidQuantity().msg),
         ]
     )
     def test_allocate_400_errors(self, line, error_message): 
@@ -87,10 +87,13 @@ class TestDeallocate:
     @pytest.mark.parametrize(
         ('line', 'error_message'),
         [
-            (('o1', 'inexistent', 1), exceptions.InexistentProduct().message),
-            (('o1', 'skew', 1), exceptions.LineIsNotAllocatedError().message),
-            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().message),
-            (('o1', 'skew', -1), exceptions.InvalidQuantity().message),
+            (('o1', 'foo', 1), exceptions.InexistentProduct(sku='foo').msg),
+            
+            (('o1', 'skew', 1),
+             exceptions.LineIsNotAllocatedError(line_info=('o1', 'skew')).msg),
+            
+            (('o1', 'skew', 'a'), exceptions.InvalidTypeForQuantity().msg),
+            (('o1', 'skew', -1), exceptions.InvalidQuantity().msg),
         ]
     )
     def test_deallocate_400_errors(self, line, error_message):
@@ -115,9 +118,10 @@ class TestQueries:
     
 
     def test_batch_does_not_exist(self):
-        response = retrieve_batch_from_server('inexistent', assert_ok=False)
+        response = retrieve_batch_from_server('foo', assert_ok=False)
         assert response.status_code == 400
-        assert response.json()['message'] == exceptions.BatchDoesNotExist().message
+        assert response.json()['message'] == \
+            exceptions.BatchDoesNotExist(ref='foo').msg
     
 
     def test_query_allocation_for_line(self):
@@ -139,7 +143,7 @@ class TestQueries:
         )
         assert response.status_code == 400
         assert response.json()['message'] == \
-                exceptions.LineIsNotAllocatedError().message
+                exceptions.LineIsNotAllocatedError(line_info=('o1', 'sku')).msg
 
 
     def test_query_allocations_for_order(self):
@@ -169,7 +173,7 @@ class TestQueries:
         )
         assert response.status_code == 400
         assert response.json()['message'] == \
-            exceptions.OrderHasNoAllocations().message
+            exceptions.OrderHasNoAllocations(order_id='o1').msg
         
 
 def post_to_create_batch(ref, sku, qty, eta=None, assert_ok=True):

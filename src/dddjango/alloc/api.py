@@ -72,7 +72,7 @@ def query_allocations_for_order(request, order_id):
 def domain_error(request, exc):
     return api.create_response(
         request,
-        {"message": exc.message},
+        {"message": exc.msg},
         status=400,
     )
 
@@ -81,7 +81,7 @@ def domain_error(request, exc):
 def validation_error(request, exc):
     return api.create_response(
         request,
-        {"message": exc.message},
+        {"message": exc.msg},
         status=400,
     )
 
@@ -97,6 +97,6 @@ def ninja_validation_errors(request, exc):
     
     return api.create_response(
         request,
-        {"message": error.message},
+        {"message": error.msg},
         status=400,
     )
