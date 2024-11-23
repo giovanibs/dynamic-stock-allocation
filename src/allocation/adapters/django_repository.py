@@ -68,8 +68,8 @@ class DjangoRepository(AbstractWriteRepository):
         for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
             orm_batch = orm.Batch.objects.get(ref=batch.ref)
-            removed_lines_order_id = {l.order_id for l in batch.allocations
-                                      if l not in updated_batch.allocations}
+            removed_lines_order_id = {line.order_id for line in batch.allocations
+                                      if line not in updated_batch.allocations}
             
             for line in orm_batch.allocations.all():
                 if line.order_id in removed_lines_order_id:
@@ -84,7 +84,8 @@ class DjangoRepository(AbstractWriteRepository):
         for batch in current_batches:
             updated_batch = self._get_batch_by_ref(updated_batches, batch.ref)
             orm_batch = orm.Batch.objects.get(ref=batch.ref)
-            new_lines = {l for l in updated_batch.allocations if l not in batch.allocations}
+            new_lines = {line for line in updated_batch.allocations
+                         if line not in batch.allocations}
             self._add_lines(new_lines, orm_batch)
 
 

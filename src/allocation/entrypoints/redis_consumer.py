@@ -1,30 +1,29 @@
 import django
+import os
+import json
+import redis
+from typing import Dict
+from django.core.management import call_command
+from allocation.config import get_logger, get_redis_config
+from allocation.adapters.redis_channels import RedisChannels
+from allocation.domain.exceptions import DomainException, ValidationError
+from allocation.domain import commands
+
+# Initialize Django to load apps into the registry for successful import
 django.setup()
+from allocation.orchestration import bootstrapper  # noqa: E402
 
 
 # Ensure tests run correctly by migrating the in-memory database used by the
 # `Consumer` when 'DJANGO_TEST_DATABASE' is set to True.
-import os
-from django.core.management import call_command
-
 if os.getenv('DJANGO_TEST_DATABASE'):
     call_command('migrate')
-
-
-import json
-import redis
-from typing import Dict
-
-from allocation.config import get_logger, get_redis_config
-from allocation.domain import commands
-from allocation.orchestration import bootstrapper
-from allocation.adapters.redis_channels import RedisChannels
-from allocation.domain.exceptions import DomainException, ValidationError
 
 
 logger = get_logger()
 redis_config = get_redis_config()
 redis_client = redis.Redis(redis_config[0], redis_config[1], decode_responses=True)
+
 
 CHANNEL_COMMAND_MAP: Dict[str, commands.Command] = {
         RedisChannels.CREATE_BATCH          : commands.CreateBatch,
@@ -60,7 +59,7 @@ def event_listener(subscriber):
             logger.exception('DomainException')
         except ValidationError:
             logger.exception('ValidationError')
-        except Exception as e:
+        except Exception:
             logger.exception('Other exception')
 
 
