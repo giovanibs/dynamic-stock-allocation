@@ -3,6 +3,13 @@ import pytest
 from allocation.domain import exceptions
 
 
+@pytest.fixture(scope="function")
+def clear_redis(redis_client):
+    redis_client.flushall()
+    yield
+    redis_client.flushall()
+
+
 @pytest.mark.django_db(transaction=True)
 class TestBatch:
 
@@ -15,6 +22,7 @@ class TestBatch:
             assert resp_batch[field] == batch[field]
 
 
+    @pytest.mark.usefixtures('clear_redis')
     def test_can_retrieve_batch_info(self):
         batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
         post_to_create_batch(**batch)
@@ -39,9 +47,9 @@ class TestBatch:
         assert response.json()['message'] == error_msg
     
 
+    @pytest.mark.usefixtures('clear_redis')
     def test_batch_does_not_exist(self):
-        batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
-        response = retrieve_batch_from_server(batch['ref'], assert_ok=False)
+        response = retrieve_batch_from_server('inexistent', assert_ok=False)
         assert response.status_code == 400
         assert response.json()['message'] == exceptions.BatchDoesNotExist().message
 

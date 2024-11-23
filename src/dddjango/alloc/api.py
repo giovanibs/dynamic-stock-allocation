@@ -1,5 +1,5 @@
 import ninja
-from allocation.domain import commands
+from allocation.domain import commands, queries
 from allocation.domain import exceptions
 from allocation.orchestration import bootstrapper
 from dddjango.alloc.schemas import (
@@ -13,16 +13,7 @@ api = ninja.NinjaAPI()
 @api.get('batches/{batch_ref}', response=BatchOut)
 def get_batch_by_ref(request, batch_ref: str):
     bus = bootstrapper.bootstrap()
-    
-    # TODO: factor this out to a query
-    try:
-        with bus._uow as uow:
-            products = uow.products.list()
-            batches = {b for p in products for b in p.batches}
-            batch = next(batch for batch in batches if batch.ref == batch_ref)
-    except StopIteration:
-        raise exceptions.BatchDoesNotExist()
-    
+    batch = bus.handle(queries.BatchByRef(batch_ref))
     return 200, batch
 
 
