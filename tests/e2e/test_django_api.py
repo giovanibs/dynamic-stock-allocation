@@ -142,6 +142,36 @@ class TestQueries:
                 exceptions.LineIsNotAllocatedError().message
 
 
+    def test_query_allocations_for_order(self):
+        order_id = 'o1'
+        batch1 = ('batch1', 'sku1', 10)
+        batch2 = ('batch2', 'sku2', 10)
+        post_to_create_batch(*batch1)
+        post_to_create_batch(*batch2)
+        line1 = {'order_id': order_id, 'sku': 'sku1', 'qty': 1}
+        line2 = {'order_id': order_id, 'sku': 'sku2', 'qty': 1}
+        post_to_allocate_line(**line1)
+        post_to_allocate_line(**line2)
+        
+        response = Client().get(
+            f"/api/allocations/{order_id}"
+        )
+        assert response.status_code == 200
+        assert response.json() == { 'allocations': [
+            {'sku1': 'batch1'},
+            {'sku2': 'batch2'},
+        ]}
+    
+
+    def test_query_returns_400_error_message_for_order_with_no_allocations(self):
+        response = Client().get(
+            f"/api/allocations/{'o1'}"
+        )
+        assert response.status_code == 400
+        assert response.json()['message'] == \
+            exceptions.OrderHasNoAllocations().message
+        
+
 def post_to_create_batch(ref, sku, qty, eta=None, assert_ok=True):
     response = Client().post(
         path = '/api/batches',

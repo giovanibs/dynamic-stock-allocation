@@ -3,7 +3,7 @@ from allocation.domain import commands, queries
 from allocation.domain import exceptions
 from allocation.orchestration import bootstrapper
 from dddjango.alloc.schemas import (
-    BatchIn, BatchOut, BatchRef, ErrorMessage, OrderLineIn
+    AllocationsForOrder, BatchIn, BatchOut, BatchRef, ErrorMessage, OrderLineIn
 )
 
 
@@ -58,6 +58,14 @@ def query_allocation_for_line(request, order_id, sku):
     bus = bootstrapper.bootstrap()
     batch_ref = bus.handle(queries.AllocationForLine(order_id, sku))
     return 200, {'batch_ref': batch_ref}
+
+
+@api.get('allocations/{order_id}', response = { 200: AllocationsForOrder,
+                                                400: ErrorMessage})
+def query_allocations_for_order(request, order_id):
+    bus = bootstrapper.bootstrap()
+    allocations = bus.handle(queries.AllocationsForOrder(order_id))
+    return 200, {'allocations': allocations}
 
 
 @api.exception_handler(exceptions.DomainException)

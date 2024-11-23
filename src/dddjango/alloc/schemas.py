@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, Union
+from typing import Dict, List, Optional, Union
 from ninja import Schema
 
 
@@ -29,3 +29,7 @@ class BatchRef(Schema):
 
 class ErrorMessage(Schema):
     message: str
+
+
+class AllocationsForOrder(Schema):
+    allocations: List[Dict[str, str]]
