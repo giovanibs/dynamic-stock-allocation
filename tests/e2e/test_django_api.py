@@ -22,16 +22,6 @@ class TestBatch:
             assert resp_batch[field] == batch[field]
 
 
-    @pytest.mark.usefixtures('clear_redis')
-    def test_can_retrieve_batch_info(self):
-        batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
-        post_to_create_batch(**batch)
-        response = retrieve_batch_from_server(batch['ref'])
-        resp_batch = response.json()
-        for field in batch:
-            assert resp_batch[field] == batch[field]
-    
-
     @pytest.mark.parametrize(
         ('values', 'error_msg'),
         [
@@ -45,13 +35,6 @@ class TestBatch:
         response = post_to_create_batch(*values, assert_ok=False)
         assert response.status_code == 400
         assert response.json()['message'] == error_msg
-    
-
-    @pytest.mark.usefixtures('clear_redis')
-    def test_batch_does_not_exist(self):
-        response = retrieve_batch_from_server('inexistent', assert_ok=False)
-        assert response.status_code == 400
-        assert response.json()['message'] == exceptions.BatchDoesNotExist().message
 
 
 @pytest.mark.django_db(transaction=True)
@@ -116,6 +99,47 @@ class TestDeallocate:
         response = post_to_deallocate_line(*line, assert_ok=False)
         assert response.status_code == 400
         assert response.json()['message'] == error_message
+
+
+@pytest.mark.usefixtures('clear_redis')
+@pytest.mark.django_db(transaction=True)
+class TestQueries:
+    
+    def test_can_retrieve_batch_info(self):
+        batch = {'ref': 'ref', 'sku': 'skew', 'qty': 10, 'eta': None}
+        post_to_create_batch(**batch)
+        response = retrieve_batch_from_server(batch['ref'])
+        resp_batch = response.json()
+        for field in batch:
+            assert resp_batch[field] == batch[field]
+    
+
+    def test_batch_does_not_exist(self):
+        response = retrieve_batch_from_server('inexistent', assert_ok=False)
+        assert response.status_code == 400
+        assert response.json()['message'] == exceptions.BatchDoesNotExist().message
+    
+
+    def test_query_allocation_for_line(self):
+        batch = ('batch', 'sku', 10)
+        post_to_create_batch(*batch)
+        line = {'order_id': 'o1', 'sku': 'sku', 'qty': 1}
+        post_to_allocate_line(**line)
+        
+        response = Client().get(
+            f"/api/allocations/{line['order_id']}/{line['sku']}"
+        )
+        assert response.status_code == 200
+        assert response.json()['batch_ref'] == 'batch'
+    
+
+    def test_query_returns_400_error_message_for_line_not_allocated(self):
+        response = Client().get(
+            f"/api/allocations/{'o1'}/{'sku'}"
+        )
+        assert response.status_code == 400
+        assert response.json()['message'] == \
+                exceptions.LineIsNotAllocatedError().message
 
 
 def post_to_create_batch(ref, sku, qty, eta=None, assert_ok=True):

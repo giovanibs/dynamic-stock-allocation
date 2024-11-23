@@ -53,6 +53,13 @@ def add_batch(request, payload: BatchIn):
     return 201, added_batch
 
 
+@api.get('allocations/{order_id}/{sku}', response={200: BatchRef, 400: ErrorMessage})
+def query_allocation_for_line(request, order_id, sku):
+    bus = bootstrapper.bootstrap()
+    batch_ref = bus.handle(queries.AllocationForLine(order_id, sku))
+    return 200, {'batch_ref': batch_ref}
+
+
 @api.exception_handler(exceptions.DomainException)
 def domain_error(request, exc):
     return api.create_response(
