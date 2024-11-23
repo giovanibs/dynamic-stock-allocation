@@ -3,7 +3,7 @@ from typing import Callable, Dict, List, Type
 from allocation.adapters.redis_publisher import RedisEventPublisher
 from allocation.adapters.redis_query_repository import RedisQueryRepository
 from allocation.config import get_redis_config
-from allocation.domain import commands, events
+from allocation.domain import commands, events, queries
 from allocation.domain.ports import AbstractPublisher, AbstractQueryRepository
 from allocation.orchestration import handlers, query_handlers
 from allocation.orchestration.message_bus import MessageBus
@@ -40,6 +40,13 @@ EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]] = {
         ],
         events.OutOfStock : [handlers.publish_event],
     }
+
+
+QUERY_HANDLERS: Dict[Type[queries.Query], Callable] = {
+    queries.BatchByRef          : query_handlers.get_batch,
+    queries.AllocationForLine   : query_handlers.get_allocation_for_line,
+    queries.AllocationsForOrder : query_handlers.get_allocations_for_order,
+}
 
 
 def bootstrap(
@@ -79,10 +86,16 @@ def bootstrap(
         for event, event_handlers in EVENT_HANDLERS.items()
     }
 
+    injected_query_handlers = {
+        query: inject_dependencies(dependencies, query_handler)
+        for query, query_handler in QUERY_HANDLERS.items()
+    }
+
     return MessageBus(
         uow = dependencies['uow'],
         command_handlers = injected_command_handlers,
         event_handlers = injected_event_handlers,
+        query_handlers = injected_query_handlers,
     )
 
 

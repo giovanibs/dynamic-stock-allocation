@@ -1,24 +1,26 @@
 from typing import Callable, Dict, List, Type, Union
 from allocation.config import get_logger
-from allocation.domain import events, commands
-from allocation.domain.exceptions import OutOfStock
+from allocation.domain import events, commands, queries
+from allocation.domain import exceptions
 from allocation.orchestration.uow import AbstractUnitOfWork
 
 
 class MessageBus:
     
-    Message = Union[commands.Command, events.Event]
+    Message = Union[commands.Command, events.Event, queries.Query]
 
     def __init__(
             self,
             uow: AbstractUnitOfWork,
             command_handlers: Dict[Type[commands.Command], Callable],
-            event_handlers: Dict[Type[events.Event], List[Callable]]
+            event_handlers: Dict[Type[events.Event], List[Callable]],
+            query_handlers: Dict[Type[queries.Query], Callable]
     ) -> None:
         
         self._uow = uow
         self._command_handlers = command_handlers
         self._event_handlers = event_handlers
+        self._query_handlers = query_handlers
         self._logger = get_logger()
 
     
@@ -35,6 +37,9 @@ class MessageBus:
             elif isinstance(message, events.Event):
                 self.handle_event(message)
             
+            elif isinstance(message, queries.Query):
+                return self.handle_query(message)
+            
             else:
                 raise TypeError(f'{message} is neither a command nor an event.')
             
@@ -47,7 +52,7 @@ class MessageBus:
         try:
             result = command_handler(command)
         
-        except OutOfStock:
+        except exceptions.OutOfStock:
             # Collect OutOfStock event from UoW, process remaining queue events,
             # then re-raise OutOfStock exception
             self._queue.extend(self._uow.collect_new_messages())
@@ -73,6 +78,16 @@ class MessageBus:
             
             self._queue.extend(self._uow.collect_new_messages())
     
+
+    def handle_query(self, query: queries.Query):
+        query_handler = self._query_handlers[type(query)]
+        self.log_debug(query, query_handler)
+        try:
+            return query_handler(query)
+        except exceptions.DomainException as e:
+            self.log_error(query, query_handler, e)
+            raise
+
 
     def log_debug(self, message: Message, handler):
         self._logger.debug(f'Handling {message} with {handler}')

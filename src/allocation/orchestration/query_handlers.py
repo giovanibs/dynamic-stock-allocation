@@ -1,4 +1,4 @@
-from allocation.domain import events
+from allocation.domain import events, queries
 from allocation.domain.ports import AbstractQueryRepository
 
 
@@ -42,3 +42,24 @@ def update_batch_quantity(
     query_repository: AbstractQueryRepository
 ):
     query_repository.update_batch_quantity(batch.ref, batch.qty)
+
+
+def get_batch(
+        query: queries.BatchByRef,
+        query_repository: AbstractQueryRepository
+):
+    return query_repository.get_batch(query.batch_ref)
+
+
+def get_allocation_for_line(
+        query: queries.AllocationForLine,
+        query_repository: AbstractQueryRepository
+):
+    return query_repository.get_allocation_for_line(query.order_id, query.sku)
+
+
+def get_allocations_for_order(
+        query: queries.AllocationsForOrder,
+        query_repository: AbstractQueryRepository
+):
+    return query_repository.get_allocations_for_order(query.order_id)

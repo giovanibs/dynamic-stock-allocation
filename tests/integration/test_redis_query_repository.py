@@ -1,6 +1,6 @@
 import pytest
 from allocation.adapters.redis_query_repository import RedisQueryRepository
-from allocation.domain import commands
+from allocation.domain import commands, queries
 from allocation.orchestration import bootstrapper
 
 
@@ -22,12 +22,10 @@ def clear_redis(redis_client):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_batch_by_ref(today, redis_repo, bus):
+def test_can_query_batch_by_ref(today, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     bus.handle(commands.CreateBatch(**batch))
-    
-    retrieved_batch = redis_repo.get_batch(batch['ref'])
-    
+    retrieved_batch = bus.handle(queries.BatchByRef(batch['ref']))
     assert retrieved_batch.ref == batch['ref']
     assert retrieved_batch.sku == batch['sku']
     assert retrieved_batch.qty == batch['qty']
@@ -35,19 +33,17 @@ def test_can_query_batch_by_ref(today, redis_repo, bus):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_batch_ref_for_allocation(today, redis_repo, bus):
+def test_can_query_batch_ref_for_allocation(today, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     line = {'order_id': 'o1', 'sku': 'sku', 'qty': 10}
     bus.handle(commands.CreateBatch(**batch))
     bus.handle(commands.Allocate(**line))
-    
-    batch_ref = redis_repo.get_allocation_for_line(line['order_id'], line['sku'])
-    
+    batch_ref = bus.handle(queries.AllocationForLine(line['order_id'], line['sku']))
     assert batch_ref.decode() == batch['ref']
 
 
 @pytest.mark.django_db(transaction=True)
-def test_can_query_allocations_for_order(tomorrow, redis_repo, bus):
+def test_can_query_allocations_for_order(tomorrow, bus):
     order_id = 'order1'
     batch1 =  ('batch1', 'sku1', 10, tomorrow)
     batch2 =  ('batch2', 'sku2', 10, tomorrow)
@@ -61,9 +57,7 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus):
     bus.handle(commands.Allocate(*line1))
     bus.handle(commands.Allocate(*line2))
     bus.handle(commands.Allocate(*line3))
-    
-    allocations = redis_repo.get_allocations_for_order(order_id)
-    
+    allocations = bus.handle(queries.AllocationsForOrder(order_id))
     assert allocations == [
                             {'sku1': 'batch1'},
                             {'sku2': 'batch2'},
@@ -72,7 +66,7 @@ def test_can_query_allocations_for_order(tomorrow, redis_repo, bus):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus):
+def test_deallocation_updates_batch_ref(tomorrow, bus):
     batch =  ('batch', 'sku', 10, tomorrow)
     line1 =  {'order_id': 'o1', 'sku': 'sku', 'qty': 5}
     line2 =  {'order_id': 'o2', 'sku': 'sku', 'qty': 5}
@@ -80,18 +74,14 @@ def test_deallocation_updates_batch_ref(tomorrow, redis_repo, bus):
     bus.handle(commands.Allocate(**line1))
     bus.handle(commands.Allocate(**line2))
     bus.handle(commands.Deallocate(**line1))
-    
-    line1_batch_ref = redis_repo.get_allocation_for_line(line1['order_id'], line1['sku'])
-    
-    assert line1_batch_ref == None
-
-    line2_batch_ref = redis_repo.get_allocation_for_line(line2['order_id'], line2['sku'])
-    
+    line1_batch_ref = bus.handle(queries.AllocationForLine(line1['order_id'], line1['sku']))
+    assert line1_batch_ref is None
+    line2_batch_ref = bus.handle(queries.AllocationForLine(line2['order_id'], line2['sku']))
     assert line2_batch_ref.decode() == 'batch'
 
 
 @pytest.mark.django_db(transaction=True)
-def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus):
+def test_deallocation_updates_order_allocations(tomorrow, bus):
     order_id = 'order1'
     batch1 =  ('batch1', 'sku1', 10, tomorrow)
     batch2 =  ('batch2', 'sku2', 10, tomorrow)
@@ -106,9 +96,7 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus):
     bus.handle(commands.Allocate(*line2))
     bus.handle(commands.Allocate(*line3))
     bus.handle(commands.Deallocate(*line2))
-    
-    allocations = redis_repo.get_allocations_for_order(order_id)
-    
+    allocations = bus.handle(queries.AllocationsForOrder(order_id))
     assert allocations == [
                             {'sku1': 'batch1'},
                             {'sku3': 'batch3'},
@@ -116,13 +104,11 @@ def test_deallocation_updates_order_allocations(tomorrow, redis_repo, bus):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_changing_batch_quantity_updates_batch(today, redis_repo, bus):
+def test_changing_batch_quantity_updates_batch(today, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
     bus.handle(commands.CreateBatch(**batch))
-    
-    retrieved_batch = redis_repo.get_batch(batch['ref'])
+    retrieved_batch = bus.handle(queries.BatchByRef(batch['ref']))
     assert retrieved_batch.qty == batch['qty']
-    
     bus.handle(commands.ChangeBatchQuantity(batch['ref'], 5))
-    retrieved_batch = redis_repo.get_batch(batch['ref'])
+    retrieved_batch = bus.handle(queries.BatchByRef(batch['ref']))
     assert retrieved_batch.qty == 5
