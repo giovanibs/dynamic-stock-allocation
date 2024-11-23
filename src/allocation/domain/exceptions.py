@@ -20,6 +20,14 @@ class LineIsNotAllocatedError(DomainException):
         super().__init__(self.message)
 
 
+class OrderHasNoAllocations(DomainException):
+    """Error raised when trying to query allocations for a order, but the order
+    has no allocations."""
+    def __init__(self, message='This order has no allocations.'):
+        self.message = message
+        super().__init__(self.message)
+
+
 class OutOfStock(DomainException):
     """Error raised when trying to allocate an order line, but there is not
     available quantity either in stock or in shipments."""

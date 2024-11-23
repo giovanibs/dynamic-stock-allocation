@@ -1,6 +1,6 @@
 import pytest
 from allocation.adapters.redis_query_repository import RedisQueryRepository
-from allocation.domain import commands, queries
+from allocation.domain import commands, exceptions, queries
 from allocation.orchestration import bootstrapper
 
 
@@ -32,6 +32,11 @@ def test_can_query_batch_by_ref(today, bus):
     assert retrieved_batch.eta == batch['eta']
 
 
+def test_raises_error_for_inexistent_batch(bus):
+    with pytest.raises(exceptions.BatchDoesNotExist):
+        bus.handle(queries.BatchByRef('inexistent'))
+
+
 @pytest.mark.django_db(transaction=True)
 def test_can_query_batch_ref_for_allocation(today, bus):
     batch = {'ref': 'batch', 'sku': 'sku', 'qty': 10, 'eta': today}
@@ -40,6 +45,11 @@ def test_can_query_batch_ref_for_allocation(today, bus):
     bus.handle(commands.Allocate(**line))
     batch_ref = bus.handle(queries.AllocationForLine(line['order_id'], line['sku']))
     assert batch_ref.decode() == batch['ref']
+
+
+def test_raises_error_for_inexistent_allocation(bus):
+    with pytest.raises(exceptions.LineIsNotAllocatedError):
+        bus.handle(queries.AllocationForLine('o1', 'skew'))
 
 
 @pytest.mark.django_db(transaction=True)
@@ -65,6 +75,11 @@ def test_can_query_allocations_for_order(tomorrow, bus):
                           ]
 
 
+def test_raises_error_for_order_without_allocations(bus):
+    with pytest.raises(exceptions.OrderHasNoAllocations):
+        bus.handle(queries.AllocationsForOrder('nope'))
+
+
 @pytest.mark.django_db(transaction=True)
 def test_deallocation_updates_batch_ref(tomorrow, bus):
     batch =  ('batch', 'sku', 10, tomorrow)
@@ -74,8 +89,10 @@ def test_deallocation_updates_batch_ref(tomorrow, bus):
     bus.handle(commands.Allocate(**line1))
     bus.handle(commands.Allocate(**line2))
     bus.handle(commands.Deallocate(**line1))
-    line1_batch_ref = bus.handle(queries.AllocationForLine(line1['order_id'], line1['sku']))
-    assert line1_batch_ref is None
+    
+    with pytest.raises(exceptions.LineIsNotAllocatedError):
+        bus.handle(queries.AllocationForLine(line1['order_id'], line1['sku']))
+    
     line2_batch_ref = bus.handle(queries.AllocationForLine(line2['order_id'], line2['sku']))
     assert line2_batch_ref.decode() == 'batch'
 
