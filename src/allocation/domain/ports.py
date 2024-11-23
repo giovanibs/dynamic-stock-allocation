@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import date
-from typing import Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 from allocation.domain.model import Batch, Product
 
@@ -67,7 +67,7 @@ class AbstractWriteRepository(ABC):
 
     @abstractmethod
     def _get_by_batch_ref(self, ref):
-        raise NotImplemented
+        raise NotImplementedError()
 
 
 class AbstractQueryRepository(ABC):

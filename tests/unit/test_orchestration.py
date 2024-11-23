@@ -10,7 +10,6 @@ from allocation.domain.ports import (
 )
 from allocation.orchestration import bootstrapper
 from allocation.orchestration.uow import AbstractUnitOfWork
-from dddjango.alloc.models import Product
 
 
 class FakeWriteRepository(AbstractWriteRepository):
@@ -165,7 +164,7 @@ class TestOrchestrationAllocate:
         line = ('o1', 'skew', 1)
         
         bus.handle(commands.Allocate(*line))
-        assert uow.commited == True
+        assert uow.commited is True
 
 
     def test_allocate_returns_batch_ref(self, today, later, bus):
@@ -201,7 +200,7 @@ class TestOrchestrationAllocate:
         with pytest.raises(expected_exception):
             bus.handle(commands.Allocate(*line))
         
-        assert uow.commited == False
+        assert uow.commited is False
     
 
 class TestOrchestrationDeallocate:
@@ -232,7 +231,7 @@ class TestOrchestrationDeallocate:
         bus.handle(commands.Allocate(*line))
         
         bus.handle(commands.Deallocate(*line))
-        assert uow.commited == True
+        assert uow.commited is True
 
 
     @pytest.mark.parametrize(
@@ -250,7 +249,7 @@ class TestOrchestrationDeallocate:
         with pytest.raises(expected_exception):
             bus.handle(commands.Deallocate(*line))
         
-        assert uow.commited == False
+        assert uow.commited is False
 
 
 class TestOrchestrationChangeBatchQuantity:
