@@ -1,0 +1,1 @@
+[![Tests](https://github.com/giovanibs/dynamic-stock-allocation/actions/workflows/test-on-push.yml/badge.svg)](https://github.com/giovanibs/dynamic-stock-allocation/actions/workflows/test-on-push.yml)
